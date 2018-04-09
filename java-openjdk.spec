@@ -14,7 +14,7 @@
 %global for_debug for packages with debug on
 
 # by default we build normal build
-%global include_normal_build 0
+%global include_normal_build 1
 %if %{include_normal_build}
 %global build_loop1 %{normal_suffix}
 %else
