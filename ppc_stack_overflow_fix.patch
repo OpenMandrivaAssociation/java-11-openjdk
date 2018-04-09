@@ -1,0 +1,48 @@
+diff --git a/src/cpu/zero/vm/stack_zero.hpp b/src/cpu/zero/vm/stack_zero.hpp
+--- openjdk/src/hotspot/cpu/zero/stack_zero.hpp
++++ openjdk/src/hotspot/cpu/zero/stack_zero.hpp
+@@ -99,7 +99,7 @@
+   int shadow_pages_size() const {
+     return _shadow_pages_size;
+   }
+-  int abi_stack_available(Thread *thread) const;
++  ssize_t abi_stack_available(Thread *thread) const;
+ 
+  public:
+   void overflow_check(int required_words, TRAPS);
+diff --git a/src/cpu/zero/vm/stack_zero.inline.hpp b/src/cpu/zero/vm/stack_zero.inline.hpp
+--- openjdk/src/hotspot/cpu/zero/stack_zero.inline.hpp
++++ openjdk/src/hotspot/cpu/zero/stack_zero.inline.hpp
+@@ -47,12 +47,12 @@
+ // This method returns the amount of ABI stack available for us
+ // to use under normal circumstances.  Note that the returned
+ // value can be negative.
+-inline int ZeroStack::abi_stack_available(Thread *thread) const {
++inline ssize_t ZeroStack::abi_stack_available(Thread *thread) const {
+   guarantee(Thread::current() == thread, "should run in the same thread");
+-  int stack_used = thread->stack_base() - (address) &stack_used
++  ssize_t stack_used = thread->stack_base() - (address) &stack_used
+     + (JavaThread::stack_guard_zone_size() + JavaThread::stack_shadow_zone_size());
+-  int stack_free = thread->stack_size() - stack_used;
++  ssize_t stack_free = thread->stack_size() - stack_used;
+   return stack_free;
+ }
+ 
+ #endif // CPU_ZERO_VM_STACK_ZERO_INLINE_HPP
+diff --git a/src/os/linux/vm/os_linux.cpp b/src/os/linux/vm/os_linux.cpp
+--- openjdk/src/hotspot/os/posix/os_posix.cpp
++++ openjdk/src/hotspot/os/posix/os_posix.cpp
+@@ -4791,6 +4791,13 @@
+ 
+   _java_thread_min_stack_allowed = align_up(_java_thread_min_stack_allowed, vm_page_size());
+   _java_thread_min_stack_allowed = MAX2(_java_thread_min_stack_allowed, os_min_stack_allowed);
++#ifdef ZERO
++  // If this is Zero, allow at the very minimum one page each for the
++  // Zero stack and the native stack.  This won't make any difference
++  // for 4k pages, but is significant for large pages.
++  _java_thread_min_stack_allowed = MAX2(_java_thread_min_stack_allowed,
++             align_size_up((size_t)(JavaThread::stack_guard_zone_size()+JavaThread::stack_shadow_zone_size()+2) * vm_page_size(), vm_page_size());
++#endif
+ 
+   size_t stack_size_in_bytes = ThreadStackSize * K;
+   if (stack_size_in_bytes != 0 &&

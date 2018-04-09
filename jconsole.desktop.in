@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=OpenJDK #JAVA_MAJOR_VERSION# Monitoring & Management Console #ARCH#
+Comment=Monitor and manage OpenJDK applications for #ARCH#
+Exec=#JAVA_HOME#/jconsole
+Icon=java-#JAVA_MAJOR_VERSION#
+Terminal=false
+Type=Application
+StartupWMClass=sun-tools-jconsole-JConsole
+Categories=Development;Monitor;Java;
+Version=1.0
