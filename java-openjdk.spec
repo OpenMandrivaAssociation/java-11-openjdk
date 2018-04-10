@@ -340,7 +340,6 @@ alternatives \\
   --slave %{_bindir}/wsgen wsgen %{sdkbindir -- %{?1}}/wsgen \\
   --slave %{_bindir}/wsimport wsimport %{sdkbindir -- %{?1}}/wsimport \\
   --slave %{_bindir}/xjc xjc %{sdkbindir -- %{?1}}/xjc \\
-  --slave %{_bindir}/jexec jexec %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jexec \\
   --slave %{_mandir}/man1/appletviewer.1$ext appletviewer.1$ext \\
   %{_mandir}/man1/appletviewer-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/idlj.1$ext idlj.1$ext \\
@@ -651,7 +650,7 @@ exit 0
 %dir %{tapsetroot}
 %dir %{tapsetdirttapset}
 %dir %{tapsetdir}
-%{tapsetdir}/*%{_build_cpu}%{?1}.stp
+%{tapsetdir}/*%{_arch}%{?1}.stp
 %endif
 }
 
