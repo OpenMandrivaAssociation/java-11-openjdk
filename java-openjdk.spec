@@ -833,7 +833,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 11%{?dist}
+Release: 12%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1353,8 +1353,7 @@ $JAVA_HOME/bin/java --add-opens java.base/javax.crypto=ALL-UNNAMED TestCryptoLev
 
 # Check ECC is working
 $JAVA_HOME/bin/javac -d . %{SOURCE14}
-# FIXME make it run after system NSS support?
-$JAVA_HOME/bin/java $(echo $(basename %{SOURCE14})|sed "s|\.java||") || true
+$JAVA_HOME/bin/java $(echo $(basename %{SOURCE14})|sed "s|\.java||")
 
 # Check debug symbols are present and can identify code
 find "$JAVA_HOME" -iname '*.so' -print0 | while read -d $'\0' lib
@@ -1737,6 +1736,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-12
+- Enable basic EC ciphers test in %check.
+
 * Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-11
 - Port Martin Balao's JDK 9 patch for system NSS support to JDK 10.
 - Resolves RHBZ#1565658
