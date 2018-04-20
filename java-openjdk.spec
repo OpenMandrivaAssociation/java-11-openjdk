@@ -935,7 +935,7 @@ BuildRequires: nss-devel
 BuildRequires: pkgconfig
 BuildRequires: xorg-x11-proto-devel
 BuildRequires: zip
-BuildRequires: java-9-openjdk-devel
+BuildRequires: java-openjdk-devel
 # Zero-assembler build requirement
 %ifnarch %{jit_arches}
 BuildRequires: libffi-devel
@@ -1285,7 +1285,7 @@ bash ../configure \
     --with-version-build=%{buildver} \
     --with-version-pre="" \
     --with-version-opt="" \
-    --with-boot-jdk=/usr/lib/jvm/java-9-openjdk \
+    --with-boot-jdk=/usr/lib/jvm/java-%{majorver}-openjdk \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
     --enable-unlimited-crypto \
@@ -1739,6 +1739,7 @@ require "copy_jdk_configs.lua"
 * Fri Apr 20 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-1
 - updated to security update 1
 - jexec unlinked from path
+- for rawhide, used java-openjdk as boot jdk
 
 * Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-12
 - Enable basic EC ciphers test in %check.
