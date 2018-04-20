@@ -143,14 +143,14 @@
 
 # New Version-String scheme-style defines
 %global majorver 10
-%global securityver 0
+%global securityver 1
 
 # Standard JPackage naming and versioning defines
 %global origin          openjdk
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global minorver        0
-%global buildver        46
+%global buildver        10
 # priority must be 7 digits in total
 # setting to 1, so debug ones can have 0
 %global priority        00000%{minorver}1
@@ -832,7 +832,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 10%{?dist}
+Release: 1%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -850,7 +850,7 @@ Group:   Development/Languages
 License:  ASL 1.1 and ASL 2.0 and GPL+ and GPLv2 and GPLv2 with exceptions and GPL+ and LGPLv2 and MPLv1.0 and MPLv1.1 and Public Domain and W3C
 URL:      http://openjdk.java.net/
 
-Source0:  jdk-jdk%{majorver}-jdk-%{majorver}+%{buildver}.tar.xz
+Source0:  jdk-updates-jdk%{majorver}u-jdk-%{newjavaver}+%{buildver}.tar.xz
 
 # Use 'generate_tarballs.sh' to generate the following tarballs
 # They are based on code contained in the IcedTea7 project
@@ -1735,6 +1735,10 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Fri Apr 20 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-1
+- updated to security update 1
+- jexec unlinked from path
+
 * Mon Apr 09 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.0.46-10
 - jexec linked to path
 
