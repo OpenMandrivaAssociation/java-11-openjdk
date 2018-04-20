@@ -697,16 +697,13 @@ OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release
 Provides: java-%{javaver}-%{origin} = %{epoch}:%{version}-%{release}
 
 # Standard JPackage base provides
-Provides: jre-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
+Provides: jre = %{javaver}%{?1}
 Provides: jre-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: jre-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
+Provides: jre-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre = %{javaver}%{?1}
 Provides: java-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java%{?1} = %{epoch}:%{javaver}
-# Standard JPackage extensions provides
-Provides: java-fonts%{?1} = %{epoch}:%{version}
-
 }
 
 %define java_headless_rpo() %{expand:
@@ -736,24 +733,14 @@ Requires(postun): %{_sbindir}/alternatives
 Requires(postun):   chkconfig >= 1.7
 
 # Standard JPackage base provides
+Provides: jre-headless%{?1} = %{epoch}:%{javaver}
 Provides: jre-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: jre-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: jre-%{javaver}-headless%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-headless%{?1} = %{epoch}:%{javaver}
 Provides: java-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-headless%{?1} = %{epoch}:%{javaver}
-# Standard JPackage extensions provides
-Provides: jndi%{?1} = %{epoch}:%{version}
-Provides: jndi-ldap%{?1} = %{epoch}:%{version}
-Provides: jndi-cos%{?1} = %{epoch}:%{version}
-Provides: jndi-rmi%{?1} = %{epoch}:%{version}
-Provides: jndi-dns%{?1} = %{epoch}:%{version}
-Provides: jaas%{?1} = %{epoch}:%{version}
-Provides: jsse%{?1} = %{epoch}:%{version}
-Provides: jce%{?1} = %{epoch}:%{version}
-Provides: jdbc-stdext%{?1} = 4.1
-Provides: java-sasl%{?1} = %{epoch}:%{version}
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1312019
 Provides: /usr/bin/jjs
@@ -779,6 +766,7 @@ Provides: java-sdk-%{javaver}%{?1} = %{epoch}:%{version}
 #Provides: java-sdk-%%{origin}%%{?1} = %%{epoch}:%%{version}
 #Provides: java-sdk%%{?1} = %%{epoch}:%%{javaver}
 Provides: java-%{javaver}-devel%{?1} = %{epoch}:%{version}
+Provides: java-%{javaver}-%{origin}-devel%{?1} = %{epoch}:%{version}
 #Provides: java-devel-%%{origin}%%{?1} = %%{epoch}:%%{version}
 #Provides: java-devel%%{?1} = %%{epoch}:%%{javaver}
 
@@ -790,7 +778,9 @@ Provides: java-%{javaver}-devel%{?1} = %{epoch}:%{version}
 Requires:         %{name}-devel%{?1} = %{epoch}:%{version}-%{release}
 OrderWithRequires: %{name}-headless%{?1} = %{epoch}:%{version}-%{release}
 
-Provides: java-%{javaver}-%{origin}-jmods = %{epoch}:%{version}-%{release}
+Provides: java-jmods%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-jmods%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-%{origin}-jmods%{?1} = %{epoch}:%{version}-%{release}
 
 }
 
@@ -798,7 +788,9 @@ Provides: java-%{javaver}-%{origin}-jmods = %{epoch}:%{version}-%{release}
 Requires: %{name}%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
 OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
 
-Provides: java-%{javaver}-%{origin}-demo = %{epoch}:%{version}-%{release}
+Provides: java-demo%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-demo%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-%{origin}-demo%{?1} = %{epoch}:%{version}-%{release}
 
 }
 
@@ -1496,7 +1488,7 @@ popd
 # Install Javadoc documentation
 install -d -m 755 $RPM_BUILD_ROOT%{_javadocdir}
 cp -a %{buildoutputdir -- $suffix}/images/docs $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}
-cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{majorver}+%{buildver}-docs.zip  $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
+cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}+%{buildver}-docs.zip  $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
 
 # Install icons and menu entries
 for s in 16 24 32 48 ; do
@@ -1739,7 +1731,9 @@ require "copy_jdk_configs.lua"
 * Fri Apr 20 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-1
 - updated to security update 1
 - jexec unlinked from path
-- for rawhide, used java-openjdk as boot jdk
+- used java-openjdk as boot jdk
+- aligned provides/requires
+- renamed zip javadoc
 
 * Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-12
 - Enable basic EC ciphers test in %check.
