@@ -524,6 +524,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/librmi.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsaproc.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsctp.so
+%{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsunec.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libunpack.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libverify.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libzip.so
@@ -885,7 +886,7 @@ Patch3: java-atk-wrapper-security.patch
 Patch4: PStack-808293.patch
 # Allow multiple initialization of PKCS11 libraries
 Patch5: multiple-pkcs11-library-init.patch
-Patch12: removeSunEcProvider-RH1154143.patch
+Patch12: system-nss-ec-rh1565658.patch
 Patch13: libjpeg-turbo-1.4-compat.patch
 # follow system wide crypto policy RHBZ#1249083
 Patch14: systemCryptoPolicyPR3183.patch
@@ -1288,6 +1289,7 @@ bash ../configure \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
     --enable-unlimited-crypto \
+    --enable-system-nss \
     --with-zlib=system \
     --with-libjpeg=system \
     --with-giflib=system \
@@ -1351,8 +1353,7 @@ $JAVA_HOME/bin/java --add-opens java.base/javax.crypto=ALL-UNNAMED TestCryptoLev
 
 # Check ECC is working
 $JAVA_HOME/bin/javac -d . %{SOURCE14}
-# FIXME make it run after system NSS support?
-$JAVA_HOME/bin/java $(echo $(basename %{SOURCE14})|sed "s|\.java||") || true
+$JAVA_HOME/bin/java $(echo $(basename %{SOURCE14})|sed "s|\.java||")
 
 # Check debug symbols are present and can identify code
 find "$JAVA_HOME" -iname '*.so' -print0 | while read -d $'\0' lib
@@ -1738,6 +1739,13 @@ require "copy_jdk_configs.lua"
 * Fri Apr 20 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-1
 - updated to security update 1
 - jexec unlinked from path
+
+* Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-12
+- Enable basic EC ciphers test in %check.
+
+* Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-11
+- Port Martin Balao's JDK 9 patch for system NSS support to JDK 10.
+- Resolves RHBZ#1565658
 
 * Mon Apr 09 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.0.46-10
 - jexec linked to path
