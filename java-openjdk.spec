@@ -825,7 +825,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 1%{?dist}
+Release: 2%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -866,38 +866,48 @@ Source13: TestCryptoLevel.java
 # Ensure ECDSA is working
 Source14: TestECDSA.java
 
+############################################
 #
 # RPM/distribution specific patches
 #
+############################################
+
+# NSS via SunPKCS11 Provider (disabled comment
+# due to memory leak).
+Patch1000: enableCommentedOutSystemNss.patch
 
 # Ignore AWTError when assistive technologies are loaded
-Patch1:   accessible-toolkit.patch
+Patch1:    accessible-toolkit.patch
 # Restrict access to java-atk-wrapper classes
-Patch3: java-atk-wrapper-security.patch
-# RHBZ 808293
-Patch4: PStack-808293.patch
-# Allow multiple initialization of PKCS11 libraries
-Patch5: multiple-pkcs11-library-init.patch
-Patch12: system-nss-ec-rh1565658.patch
-Patch13: libjpeg-turbo-1.4-compat.patch
-# follow system wide crypto policy RHBZ#1249083
-Patch14: systemCryptoPolicyPR3183.patch
+Patch2:    java-atk-wrapper-security.patch
+Patch3:    libjpeg-turbo-1.4-compat.patch
+# Follow system wide crypto policy RHBZ#1249083
+Patch4:    RHBZ-1249083-system-crypto-policy-PR3183.patch
+# System NSS via SunEC Provider
+Patch5:    RHBZ-1565658-system-nss-SunEC.patch
 
+#############################################
 #
 # OpenJDK specific patches
 #
+#############################################
 
-# JVM heap size changes for s390 (thanks to aph)
-Patch101: sorted-diff.patch
-Patch104: bootcycle_jobs.patch
+# s390 (Zero) build does not bootcycle without this patch
+# Already in JDK-11. Missing backports.
+Patch100:  JDK-8201495-s390-java-opts.patch
+# See JDK-8198844. This won't be needed any more in
+# JDK 11+
+Patch101:  sorted-diff.patch
+# Type fixing for s390 (Zero). Not upstream.
+Patch102:  java-openjdk-s390-size_t.patch
+# bootcycle-images target may run out of ressources
+# due to bad jobs config. Missing backports.
+Patch103:  JDK-8201788-bootcycle-images-jobs.patch
+# s390 (Zero) build fix. Pending upstream.
+Patch104:  JDK-8201509-s390-atomic_store.patch
 
-
-Patch400: ppc_stack_overflow_fix.patch
-Patch401: aarch64BuildFailure.patch
-
-
-# Non-OpenJDK fixes
-Patch1000: enableCommentedOutSystemNss.patch
+# aarch64 slowdebug build fix. Pending upstream
+Patch400:  JDK-8200556-aarch64-slowdebug-crash.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -1154,26 +1164,18 @@ fi
 sh %{SOURCE12}
 pushd %{top_level_dir_name}
 %patch1 -p1
+%patch2 -p1
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch12 -p1
-%patch13 -p1
-%patch14 -p1
-
-# s390 build fixes
-%ifarch s390
-
-%endif
 
 %patch101 -p1
+%patch102 -p1
+%patch103 -p1
 %patch104 -p1
 
-# Zero PPC fixes
-# TODO: propose them upstream
 %patch400 -p1
 
-%patch401 -p1
 popd # openjdk
 
 %patch1000
@@ -1728,6 +1730,20 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Fri Apr 20 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-2
+- Removed unneeded patches:
+  PStack-808293.patch
+  multiple-pkcs11-library-init.patch
+  ppc_stack_overflow_fix.patch 
+- Added patches for s390 Zero builds:
+  JDK-8201495-s390-java-opts.patch
+  JDK-8201509-s390-atomic_store.patch
+- Renamed patches for clarity:
+  aarch64BuildFailure.patch => JDK-8200556-aarch64-slowdebug-crash.patch
+  systemCryptoPolicyPR3183.patch => RHBZ-1249083-system-crypto-policy-PR3183.patch
+  bootcycle_jobs.patch => JDK-8201788-bootcycle-images-jobs.patch
+  system-nss-ec-rh1565658.patch => RHBZ-1565658-system-nss-SunEC.patch
+
 * Fri Apr 20 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-1
 - updated to security update 1
 - jexec unlinked from path
