@@ -64,6 +64,15 @@
 %global targets all docs
 %endif
 
+# Filter out flags from the optflags macro that cause problems with the OpenJDK build
+# We filter out -O flags so that the optimisation of HotSpot is not lowered from O3 to O2
+# We filter out -Wall which will otherwise cause HotSpot to produce hundreds of thousands of warnings (100+mb logs)
+# We replace it with -Wformat (required by -Werror=format-security) and -Wno-cpp to avoid FORTIFY_SOURCE warnings
+# We filter out -fexceptions as the HotSpot build explicitly does -fno-exceptions and it's otherwise the default for C++
+%global ourflags %(echo %optflags | sed -e 's|-Wall|-Wformat -Wno-cpp|' | sed -r -e 's|-O[0-9]*||')
+%global ourcppflags %(echo %ourflags | sed -e 's|-fexceptions||')
+%global ourldflags %{__global_ldflags}
+
 # With disabled nss is NSS deactivated, so NSS_LIBDIR can contain the wrong path
 # the initialisation must be here. Later the pkg-config have buggy behaviour
 # looks like openjdk RPM specific bug
@@ -825,7 +834,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 2%{?dist}
+Release: 3%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -905,6 +914,10 @@ Patch102:  java-openjdk-s390-size_t.patch
 Patch103:  JDK-8201788-bootcycle-images-jobs.patch
 # s390 (Zero) build fix. Pending upstream.
 Patch104:  JDK-8201509-s390-atomic_store.patch
+# libjsig.so does not receive extra ld flags when
+# being built. Not an issue on JDK 11. Missing fix for
+# 10 upstream.
+Patch105:  JDK-8202262-libjsig.so-extra-link-flags.patch
 
 # aarch64 slowdebug build fix. Pending upstream
 Patch400:  JDK-8200556-aarch64-slowdebug-crash.patch
@@ -1173,6 +1186,7 @@ pushd %{top_level_dir_name}
 %patch102 -p1
 %patch103 -p1
 %patch104 -p1
+%patch105 -p1
 
 %patch400 -p1
 
@@ -1240,18 +1254,12 @@ export ARCH_DATA_MODEL=64
 export CFLAGS="$CFLAGS -mieee"
 %endif
 
-EXTRA_CFLAGS="-fstack-protector-strong"
-# see https://bugzilla.redhat.com/show_bug.cgi?id=1120792
-EXTRA_CFLAGS="$EXTRA_CFLAGS -Wno-error"
-EXTRA_CPP_FLAGS="-Wno-error"
+EXTRA_CFLAGS="%ourcppflags -std=gnu++98 -Wno-error -fno-delete-null-pointer-checks -fno-lifetime-dse"
+EXTRA_CPP_FLAGS="%ourcppflags -std=gnu++98 -fno-delete-null-pointer-checks -fno-lifetime-dse"
+
 %ifarch %{power64} ppc
 # fix rpmlint warnings
 EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
-%endif
-
-%if 0%{?fedora} > 23
-EXTRA_CFLAGS="$EXTRA_CFLAGS -Wno-error -std=gnu++98  -fno-delete-null-pointer-checks -fno-lifetime-dse -fpermissive"
-EXTRA_CPP_FLAGS="$EXTRA_CPP_FLAGS -Wno-error -std=gnu++98 -fno-delete-null-pointer-checks -fno-lifetime-dse"
 %endif
 
 (cd %{top_level_dir_name}/make/autoconf
@@ -1292,6 +1300,7 @@ bash ../configure \
     --with-stdc++lib=dynamic \
     --with-extra-cxxflags="$EXTRA_CPP_FLAGS" \
     --with-extra-cflags="$EXTRA_CFLAGS" \
+    --with-extra-ldflags="%{ourldflags}" \
     --with-num-cores="$NUM_PROC" \
     --disable-javac-server \
     --disable-warnings-as-errors
@@ -1730,6 +1739,11 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Mon Apr 23 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-3
+- Inject build flags properly. See RHBZ#1571359
+- Added patch JDK-8202262-libjsig.so-extra-link-flags.patch
+  since libjsig.so doesn't get linker flags injected properly.
+
 * Fri Apr 20 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-2
 - Removed unneeded patches:
   PStack-808293.patch

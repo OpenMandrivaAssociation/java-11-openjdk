@@ -1,0 +1,21 @@
+# HG changeset patch
+# User sgehwolf
+# Date 1524663215 -7200
+#      Wed Apr 25 15:33:35 2018 +0200
+# Node ID c000e94e3d789bcb30d18541a3be33856bb3fe17
+# Parent  a29fc1f5b37d344c771f83f528dcd223ad240e6c
+8202262: libjsig.so not linked with extra linker flags from configure
+Reviewed-by: duke
+
+diff --git a/make/hotspot/lib/CompileLibjsig.gmk b/make/hotspot/lib/CompileLibjsig.gmk
+--- a/make/hotspot/lib/CompileLibjsig.gmk
++++ b/make/hotspot/lib/CompileLibjsig.gmk
+@@ -36,7 +36,7 @@
+   ifeq ($(STATIC_BUILD), false)
+     ifeq ($(OPENJDK_TARGET_OS), linux)
+       LIBJSIG_CFLAGS := -fPIC -D_GNU_SOURCE -D_REENTRANT $(EXTRA_CFLAGS)
+-      LIBJSIG_LDFLAGS := $(LDFLAGS_HASH_STYLE) ${LDFLAGS_NO_EXEC_STACK} $(EXTRA_CFLAGS)
++      LIBJSIG_LDFLAGS := $(LDFLAGS_HASH_STYLE) ${LDFLAGS_NO_EXEC_STACK} $(EXTRA_LDFLAGS)
+       LIBJSIG_LIBS := $(LIBDL)
+ 
+       # NOTE: The old build compiled this library without -soname.
