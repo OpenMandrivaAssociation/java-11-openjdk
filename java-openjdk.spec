@@ -834,7 +834,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 3%{?dist}
+Release: 4%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -918,6 +918,10 @@ Patch104:  JDK-8201509-s390-atomic_store.patch
 # being built. Not an issue on JDK 11. Missing fix for
 # 10 upstream.
 Patch105:  JDK-8202262-libjsig.so-extra-link-flags.patch
+# NPE from JarFileSystem.getVersionMap. Fixed in JDK 11,
+# not backported to JDK 10. See RHBZ#1557375 for the
+# downstream issue. Not applicable for JDK 8.
+Patch106:  JDK-8193802-npe-jar-getVersionMap.patch
 
 # aarch64 slowdebug build fix. Pending upstream
 Patch400:  JDK-8200556-aarch64-slowdebug-crash.patch
@@ -1187,6 +1191,7 @@ pushd %{top_level_dir_name}
 %patch103 -p1
 %patch104 -p1
 %patch105 -p1
+%patch106 -p1
 
 %patch400 -p1
 
@@ -1739,6 +1744,10 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Mon Apr 30 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-4
+- Add JDK-8193802-npe-jar-getVersionMap.patch so as to fix
+  RHBZ#1557375.
+
 * Mon Apr 23 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-3
 - Inject build flags properly. See RHBZ#1571359
 - Added patch JDK-8202262-libjsig.so-extra-link-flags.patch

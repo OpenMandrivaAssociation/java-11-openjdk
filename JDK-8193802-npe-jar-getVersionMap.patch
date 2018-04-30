@@ -1,0 +1,72 @@
+# HG changeset patch
+# User sherman
+# Date 1525080541 -7200
+#      Mon Apr 30 11:29:01 2018 +0200
+# Node ID c3e284205e149a6d786ff5aa7dca9338cf70ba60
+# Parent  e541eaa797070bafe8c3dc41f4beec8395c78276
+8193802: NullPointerException from JarFileSystem.getVersionMap()
+Reviewed-by: mchung
+
+diff --git a/src/jdk.zipfs/share/classes/jdk/nio/zipfs/JarFileSystem.java b/src/jdk.zipfs/share/classes/jdk/nio/zipfs/JarFileSystem.java
+--- a/src/jdk.zipfs/share/classes/jdk/nio/zipfs/JarFileSystem.java
++++ b/src/jdk.zipfs/share/classes/jdk/nio/zipfs/JarFileSystem.java
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
++ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+  *
+  * This code is free software; you can redistribute it and/or modify it
+@@ -109,7 +109,9 @@
+      */
+     private Function<byte[],byte[]> createVersionedLinks(int version) {
+         HashMap<IndexNode,byte[]> aliasMap = new HashMap<>();
+-        getVersionMap(version, getInode(getBytes("/META-INF/versions"))).values()
++        IndexNode verdir = getInode(getBytes("/META-INF/versions"));
++        if (verdir != null) {
++            getVersionMap(version, verdir).values()
+                 .forEach(versionNode -> {   // for each META-INF/versions/{n} directory
+                     // put all the leaf inodes, i.e. entries, into the alias map
+                     // possibly shadowing lower versioned entries
+@@ -124,6 +126,7 @@
+                         }
+                     });
+                 });
++        }
+         return path -> aliasMap.get(IndexNode.keyOf(path));
+     }
+ 
+diff --git a/test/jdk/jdk/nio/zipfs/MultiReleaseJarTest.java b/test/jdk/jdk/nio/zipfs/MultiReleaseJarTest.java
+--- a/test/jdk/jdk/nio/zipfs/MultiReleaseJarTest.java
++++ b/test/jdk/jdk/nio/zipfs/MultiReleaseJarTest.java
+@@ -23,7 +23,7 @@
+ 
+ /*
+  * @test
+- * @bug 8144355 8144062 8176709
++ * @bug 8144355 8144062 8176709 8193802
+  * @summary Test aliasing additions to ZipFileSystem for multi-release jar files
+  * @library /lib/testlibrary/java/util/jar
+  * @build Compiler JarBuilder CreateMultiReleaseTestJars
+@@ -205,6 +205,21 @@
+         //testCustomMultiReleaseValue("true\r\n true", false);
+     }
+ 
++    @Test
++    public void testMultiReleaseJarWithNonVersionDir() throws Exception {
++        String jfname = "multi-release-non-ver.jar";
++        Path jfpath = Paths.get(jfname);
++        URI uri = new URI("jar", jfpath.toUri().toString() , null);
++        JarBuilder jb = new JarBuilder(jfname);
++        jb.addAttribute("Multi-Release", "true");
++        jb.build();
++        Map<String,String> env = Map.of("multi-release", "runtime");
++        try (FileSystem fs = FileSystems.newFileSystem(uri, env)) {
++            Assert.assertTrue(true);
++        }
++        Files.delete(jfpath);
++    }
++
+     private static final AtomicInteger JAR_COUNT = new AtomicInteger(0);
+ 
+     private void testCustomMultiReleaseValue(String value, boolean expected)
