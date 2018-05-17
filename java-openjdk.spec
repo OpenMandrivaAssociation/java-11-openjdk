@@ -718,8 +718,8 @@ Provides: java%{?1} = %{epoch}:%{javaver}
 %define java_headless_rpo() %{expand:
 # Require /etc/pki/java/cacerts
 Requires: ca-certificates
-# Require javapackages-tools for ownership of /usr/lib/jvm/
-Requires: javapackages-tools
+# Require javapackages-filesystem for ownership of /usr/lib/jvm/
+Requires: javapackages-filesystem
 # Require zoneinfo data provided by tzdata-java sub-package
 Requires: tzdata-java >= 2015d
 # libsctp.so.1 is being `dlopen`ed on demand
@@ -834,7 +834,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 4%{?dist}
+Release: 5%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1105,7 +1105,7 @@ The java-%{origin}-src-debug sub-package contains the complete %{origin_nice} %{
 %package javadoc
 Summary: %{origin_nice} %{majorver} API documentation
 Group:   Documentation
-Requires: javapackages-tools
+Requires: javapackages-filesystem
 
 %{java_javadoc_rpo %{nil}}
 
@@ -1117,7 +1117,7 @@ The %{origin_nice} %{majorver} API documentation.
 %package javadoc-zip
 Summary: %{origin_nice} %{majorver} API documentation compressed in single archive
 Group:   Documentation
-Requires: javapackages-tools
+Requires: javapackages-filesystem
 
 %{java_javadoc_rpo %{nil}}
 
@@ -1129,7 +1129,7 @@ The %{origin_nice} %{majorver} API documentation compressed in single archive.
 %package javadoc-slowdebug
 Summary: %{origin_nice} %{majorver} API documentation %{for_debug}
 Group:   Documentation
-Requires: javapackages-tools
+Requires: javapackages-filesystem
 
 %{java_javadoc_rpo -- %{debug_suffix_unquoted}}
 
@@ -1141,7 +1141,7 @@ The %{origin_nice} %{majorver} API documentation %{for_debug}.
 %package javadoc-zip-slowdebug
 Summary: %{origin_nice} %{majorver} API documentation compressed in single archive %{for_debug}
 Group:   Documentation
-Requires: javapackages-tools
+Requires: javapackages-filesystem
 
 %{java_javadoc_rpo -- %{debug_suffix_unquoted}}
 
@@ -1744,6 +1744,10 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Thu May 17 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-5
+- Move to javapackages-filesystem for directory ownership.
+  Resolves RHBZ#1500288
+
 * Mon Apr 30 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-4
 - Add JDK-8193802-npe-jar-getVersionMap.patch so as to fix
   RHBZ#1557375.
