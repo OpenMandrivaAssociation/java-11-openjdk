@@ -94,6 +94,10 @@
 %global __provides_exclude ^(%{_privatelibs})$
 %global __requires_exclude ^(%{_privatelibs})$
 
+# In some cases, the arch used by the JDK does
+# not match _arch.
+# Also, in some cases, the machine name used by SystemTap
+# does not match that given by _build_cpu
 %ifarch x86_64
 %global archinstall amd64
 %endif
@@ -849,7 +853,17 @@ Epoch:   1
 Summary: %{origin_nice} Runtime Environment %{majorver}
 Group:   Development/Languages
 
-License:  ASL 1.1 and ASL 2.0 and GPL+ and GPLv2 and GPLv2 with exceptions and GPL+ and LGPLv2 and MPLv1.0 and MPLv1.1 and Public Domain and W3C
+# HotSpot code is licensed under GPLv2
+# JDK library code is licensed under GPLv2 with the Classpath exception
+# The Apache license is used in code taken from Apache projects (primarily JAXP & JAXWS)
+# DOM levels 2 & 3 and the XML digital signature schemas are licensed under the W3C Software License
+# The JSR166 concurrency code is in the public domain
+# The BSD and MIT licenses are used for a number of third-party libraries (see THIRD_PARTY_README)
+# The OpenJDK source tree includes the JPEG library (IJG), zlib & libpng (zlib), giflib and LCMS (MIT)
+# The test code includes copies of NSS under the Mozilla Public License v2.0
+# The PCSClite headers are under a BSD with advertising license
+# The elliptic curve cryptography (ECC) source code is licensed under the LGPLv2.1 or any later version
+License:  ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib
 URL:      http://openjdk.java.net/
 
 Source0:  jdk-updates-jdk%{majorver}u-jdk-%{newjavaver}+%{buildver}.tar.xz
@@ -1259,6 +1273,9 @@ export ARCH_DATA_MODEL=64
 export CFLAGS="$CFLAGS -mieee"
 %endif
 
+# We use ourcppflags because the OpenJDK build seems to
+# pass EXTRA_CFLAGS to the HotSpot C++ compiler...
+# Explicitly set the C++ standard as the default has changed on GCC >= 6
 EXTRA_CFLAGS="%ourcppflags -std=gnu++98 -Wno-error -fno-delete-null-pointer-checks -fno-lifetime-dse"
 EXTRA_CPP_FLAGS="%ourcppflags -std=gnu++98 -fno-delete-null-pointer-checks -fno-lifetime-dse"
 
@@ -1266,6 +1283,7 @@ EXTRA_CPP_FLAGS="%ourcppflags -std=gnu++98 -fno-delete-null-pointer-checks -fno-
 # fix rpmlint warnings
 EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 %endif
+export EXTRA_CFLAGS
 
 (cd %{top_level_dir_name}/make/autoconf
  bash ./autogen.sh
@@ -1336,7 +1354,7 @@ find images/%{jdkimage}/bin/ -exec chmod +x {} \;
 popd >& /dev/null
 
 # Install nss.cfg right away as we will be using the JRE above
-export JAVA_HOME=$(pwd)/%{buildoutputdir $suffix}/images/%{jdkimage}
+export JAVA_HOME=$(pwd)/%{buildoutputdir -- $suffix}/images/%{jdkimage}
 
 # Install nss.cfg right away as we will be using the JRE above
 install -m 644 nss.cfg $JAVA_HOME/conf/security/
@@ -1353,7 +1371,7 @@ done
 # We test debug first as it will give better diagnostics on a crash
 for suffix in %{rev_build_loop} ; do
 
-export JAVA_HOME=$(pwd)/%{buildoutputdir $suffix}/images/%{jdkimage}
+export JAVA_HOME=$(pwd)/%{buildoutputdir -- $suffix}/images/%{jdkimage}
 
 # Check unlimited policy has been used
 $JAVA_HOME/bin/javac -d . %{SOURCE13}
@@ -1408,6 +1426,11 @@ do
 done
 
 # Make sure gdb can do a backtrace based on line numbers on libjvm.so
+# javaCalls.cpp:58 should map to:
+# http://hg.openjdk.java.net/jdk8u/jdk8u/hotspot/file/ff3b27e6bcc2/src/share/vm/runtime/javaCalls.cpp#l58 
+# Using line number 1 might cause build problems. See:
+# https://bugzilla.redhat.com/show_bug.cgi?id=1539664
+# https://bugzilla.redhat.com/show_bug.cgi?id=1538767
 gdb -q "$JAVA_HOME/bin/java" <<EOF | tee gdb.out
 handle SIGSEGV pass nostop noprint
 handle SIGILL pass nostop noprint
