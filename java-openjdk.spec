@@ -148,12 +148,6 @@
 %global with_systemtap 0
 %endif
 
-# Convert an absolute path to a relative path.  Each symbolic link is
-# specified relative to the directory in which it is installed so that
-# it will resolve properly within chrooted installations
-%global script 'use File::Spec; print File::Spec->abs2rel($ARGV[0], $ARGV[1])'
-%global abs2rel %{__perl} -e %{script}
-
 # New Version-String scheme-style defines
 %global majorver 10
 %global securityver 1
@@ -471,7 +465,7 @@ exit 0
 }
 
 %define files_jre() %{expand:
-%{_datadir}/icons/hicolor/*x*/apps/java-%{javaver}.png
+%{_datadir}/icons/hicolor/*x*/apps/java-%{javaver}-%{origin}.png
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjsoundalsa.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsplashscreen.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libawt_xawt.so
@@ -838,7 +832,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 6%{?dist}
+Release: 7%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -968,6 +962,9 @@ BuildRequires: nss-devel
 BuildRequires: pkgconfig
 BuildRequires: xorg-x11-proto-devel
 BuildRequires: zip
+# since we require only javapackages-filesystem we have to require whole javapackages-tools in build-time to have various _jvm macros expanded
+# note, that this dependency is bringing current main JDK into buildroot
+BuildRequires: javapackages-tools
 BuildRequires: java-openjdk-devel
 # Zero-assembler build requirement
 %ifnarch %{jit_arches}
@@ -1223,17 +1220,17 @@ cp -r tapset tapset%{debug_suffix}
 
 for suffix in %{build_loop} ; do
   for file in "tapset"$suffix/*.in; do
-    OUTPUT_FILE=`echo $file | sed -e s:%{systemtap_javaver}\.stp\.in$:%{version}-%{release}.%{_arch}.stp:g`
-    sed -e s:@ABS_SERVER_LIBJVM_SO@:%{_jvmdir}/%{sdkdir -- $suffix}/lib/server/libjvm.so:g $file > $file.1
+    OUTPUT_FILE=`echo $file | sed -e "s:%{systemtap_javaver}\.stp\.in$:%{version}-%{release}.%{_arch}.stp:g"`
+    sed -e "s:@ABS_SERVER_LIBJVM_SO@:%{_jvmdir}/%{sdkdir -- $suffix}/lib/server/libjvm.so:g" $file > $file.1
 # TODO find out which architectures other than i686 have a client vm
 %ifarch %{ix86}
-    sed -e s:@ABS_CLIENT_LIBJVM_SO@:%{_jvmdir}/%{sdkdir -- $suffix}/lib/client/libjvm.so:g $file.1 > $OUTPUT_FILE
+    sed -e "s:@ABS_CLIENT_LIBJVM_SO@:%{_jvmdir}/%{sdkdir -- $suffix}/lib/client/libjvm.so:g" $file.1 > $OUTPUT_FILE
 %else
-    sed -e '/@ABS_CLIENT_LIBJVM_SO@/d' $file.1 > $OUTPUT_FILE
+    sed -e "/@ABS_CLIENT_LIBJVM_SO@/d" $file.1 > $OUTPUT_FILE
 %endif
-    sed -i -e s:@ABS_JAVA_HOME_DIR@:%{_jvmdir}/%{sdkdir -- $suffix}:g $OUTPUT_FILE
-    sed -i -e s:@INSTALL_ARCH_DIR@:%{archinstall}:g $OUTPUT_FILE
-    sed -i -e s:@prefix@:%{_jvmdir}/%{sdkdir -- $suffix}/:g $OUTPUT_FILE
+    sed -i -e "s:@ABS_JAVA_HOME_DIR@:%{_jvmdir}/%{sdkdir -- $suffix}:g" $OUTPUT_FILE
+    sed -i -e "s:@INSTALL_ARCH_DIR@:%{archinstall}:g" $OUTPUT_FILE
+    sed -i -e "s:@prefix@:%{_jvmdir}/%{sdkdir -- $suffix}/:g" $OUTPUT_FILE
   done
 done
 # systemtap tapsets ends
@@ -1246,15 +1243,16 @@ for file in %{SOURCE9}; do
     EXT="${FILE##*.}"
     NAME="${FILE%.*}"
     OUTPUT_FILE=$NAME$suffix.$EXT
-    sed -e s:#JAVA_HOME#:%{sdkbindir -- $suffix}:g $file > $OUTPUT_FILE
-    sed -i -e  s:#JRE_HOME#:%{jrebindir -- $suffix}:g $OUTPUT_FILE
-    sed -i -e  s:#ARCH#:%{version}-%{release}.%{_arch}$suffix:g $OUTPUT_FILE
-    sed -i -e  s:#JAVA_MAJOR_VERSION#:%{majorver}:g $OUTPUT_FILE
+    sed    -e  "s:@JAVA_HOME@:%{sdkbindir -- $suffix}:g" $file > $OUTPUT_FILE
+    sed -i -e  "s:@JRE_HOME@:%{jrebindir -- $suffix}:g" $OUTPUT_FILE
+    sed -i -e  "s:@ARCH@:%{version}-%{release}.%{_arch}$suffix:g" $OUTPUT_FILE
+    sed -i -e  "s:@JAVA_MAJOR_VERSION@:%{majorver}:g" $OUTPUT_FILE
+    sed -i -e  "s:@JAVA_VENDOR@:%{origin}:g" $OUTPUT_FILE
 done
 done
 
 # Setup nss.cfg
-sed -e s:@NSS_LIBDIR@:%{NSS_LIBDIR}:g %{SOURCE11} > nss.cfg
+sed -e "s:@NSS_LIBDIR@:%{NSS_LIBDIR}:g" %{SOURCE11} > nss.cfg
 
 
 %build
@@ -1486,13 +1484,10 @@ pushd %{buildoutputdir $suffix}/images/%{jdkimage}
    tapsetFiles=`ls *.stp`
   popd
   install -d -m 755 $RPM_BUILD_ROOT%{tapsetdir}
-  pushd $RPM_BUILD_ROOT%{tapsetdir}
-    RELATIVE=$(%{abs2rel} %{_jvmdir}/%{sdkdir -- $suffix}/tapset %{tapsetdir})
-    for name in $tapsetFiles ; do
-      targetName=`echo $name | sed "s/.stp/$suffix.stp/"`
-      ln -sf $RELATIVE/$name $targetName
-    done
-  popd
+  for name in $tapsetFiles ; do
+    targetName=`echo $name | sed "s/.stp/$suffix.stp/"`
+    ln -sf %{_jvmdir}/%{sdkdir -- $suffix}/tapset/$name $RPM_BUILD_ROOT%{tapsetdir}/$targetName
+  done
 %endif
 
   # Remove empty cacerts database
@@ -1533,7 +1528,7 @@ cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}+%{buildver}-docs.zi
 for s in 16 24 32 48 ; do
   install -D -p -m 644 \
     %{top_level_dir_name}/src/java.desktop/unix/classes/sun/awt/X11/java-icon${s}.png \
-    $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${s}x${s}/apps/java-%{javaver}.png
+    $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${s}x${s}/apps/java-%{javaver}-%{origin}.png
 done
 
 # Install desktop files
@@ -1767,6 +1762,12 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Thu Jun 04 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-7
+- quoted sed expressions, changed possibly confussing # by @
+- added vendor(origin) into icons
+- removed last trace of relative symlinks
+- added BuildRequires of javapackages-tools to fix build failure after Requires change to javapackages-filesystem
+
 * Thu May 17 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-5
 - Move to javapackages-filesystem for directory ownership.
   Resolves RHBZ#1500288
