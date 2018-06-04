@@ -1109,7 +1109,7 @@ Group:   Development/Languages
 %{java_src_rpo -- %{debug_suffix_unquoted}}
 
 %description src-slowdebug
-The java-%{origin}-src-debug sub-package contains the complete %{origin_nice} %{majorver} class library source code for use by IDE indexers and debuggers. Debugging %{for_debug}.
+The java-%{origin}-src-slowdebug sub-package contains the complete %{origin_nice} %{majorver} class library source code for use by IDE indexers and debuggers. Debugging %{for_debug}.
 %endif
 
 %if %{include_normal_build}
@@ -1692,7 +1692,6 @@ require "copy_jdk_configs.lua"
 
 %postun javadoc-zip-slowdebug
 %{postun_javadoc_zip -- %{debug_suffix_unquoted}}
-
 %endif
 
 %if %{include_normal_build}
@@ -1762,7 +1761,7 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
-* Thu Jun 04 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-7
+* Mon Jun 04 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-7
 - quoted sed expressions, changed possibly confussing # by @
 - added vendor(origin) into icons
 - removed last trace of relative symlinks
