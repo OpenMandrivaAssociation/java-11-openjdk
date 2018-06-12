@@ -89,7 +89,7 @@
 
 
 # fix for https://bugzilla.redhat.com/show_bug.cgi?id=1111349
-%global _privatelibs libmawt[.]so.* libattach[.]so.* libawt[.]so.* libextnet[.]so.* libjsig[.]so.* libawt_headless[.]so.* libdt_socket[.]so.* libfontmanager[.]so.* libinstrument[.]so.* libj2gss[.]so.* libj2pcsc[.]so.* libj2pkcs11[.]so.* libjaas_unix[.]so.* libjavajpeg[.]so.* libjdwp[.]so.* libjimage[.]so.* libjsound[.]so.* liblcms[.]so.* libmanagement[.]so.* libmanagement_agent[.]so.* libmanagement_ext[.]so.* libmlib_image[.]so.* libnet[.]so.* libnio[.]so.* libprefs[.]so.* librmi[.]so.* libsaproc[.]so.* libsctp[.]so.* libunpack[.]so.* libverify[.]so.* libzip[.]so.* libjsoundalsa[.]so.* libsplashscreen[.]so.* libawt_xawt[.]so.*
+%global _privatelibs libjsoundalsa[.]so.*|libsplashscreen[.]so.*|libawt_xawt[.]so.*|libjawt[.]so.*|libjli[.]so.*|libattach[.]so.*|libawt[.]so.*|libextnet[.]so.*|libjsig[.]so.*|libawt_headless[.]so.*|libdt_socket[.]so.*|libfontmanager[.]so.*|libinstrument[.]so.*|libj2gss[.]so.*|libj2pcsc[.]so.*|libj2pkcs11[.]so.*|libjaas_unix[.]so.*|libjava[.]so.*|libjavajpeg[.]so.*|libjdwp[.]so.*|libjimage[.]so.*|libjsound[.]so.*|liblcms[.]so.*|libmanagement[.]so.*|libmanagement_agent[.]so.*|libmanagement_ext[.]so.*|libmlib_image[.]so.*|libnet[.]so.*|libnio[.]so.*|libprefs[.]so.*|librmi[.]so.*|libsaproc[.]so.*|libsctp[.]so.*|libsunec[.]so.*|libunpack[.]so.*|libverify[.]so.*|libzip[.]so.*
 
 %global __provides_exclude ^(%{_privatelibs})$
 %global __requires_exclude ^(%{_privatelibs})$
@@ -832,7 +832,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 8%{?dist}
+Release: 9%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1761,6 +1761,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Tue Jun 12 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-9
+- Use proper private_libs expression for filtering requires/provides.
+
 * Fri Jun 08 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-8
 - Bump release and rebuild for fixed gdb. See RHBZ#1589118.
 
