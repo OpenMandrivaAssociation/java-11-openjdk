@@ -549,8 +549,8 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/client/
 %ifarch %{jit_arches}
 %ifnarch %{power64}
-%attr(664, root, root) %ghost %{_jvmdir}/%{sdkdir -- %{?1}}/lib/server/classes.jsa
-%attr(664, root, root) %ghost %{_jvmdir}/%{sdkdir -- %{?1}}/lib/client/classes.jsa
+%attr(444, root, root) %ghost %{_jvmdir}/%{sdkdir -- %{?1}}/lib/server/classes.jsa
+%attr(444, root, root) %ghost %{_jvmdir}/%{sdkdir -- %{?1}}/lib/client/classes.jsa
 %endif
 %endif
 %dir %{etcjavasubdir}
@@ -1763,6 +1763,7 @@ require "copy_jdk_configs.lua"
 %changelog
 * Tue Jun 12 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-9
 - Use proper private_libs expression for filtering requires/provides.
+- jsa files changed to 444 to pass rpm verification
 
 * Fri Jun 08 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-8
 - Bump release and rebuild for fixed gdb. See RHBZ#1589118.
