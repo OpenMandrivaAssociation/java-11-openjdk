@@ -1,4 +1,3 @@
-######################################################
 # RPM conditionals so as to be able to dynamically produce
 # slowdebug/release builds. See:
 # http://rpm.org/user_doc/conditional_builds.html
@@ -17,7 +16,6 @@
 # Only produce a debug build on x86_64:
 # $ fedpkg local --without release
 #
-######################################################
 # Enable slowdebug builds by default on relevant arches.
 %bcond_without slowdebug
 # Enable release builds by default on relevant arches.
@@ -38,7 +36,6 @@
 %global debug_on with full debug on
 %global for_debug for packages with debug on
 
-# by default we build normal build
 %if %{with release}
 %global include_normal_build 1
 %else
