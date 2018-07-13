@@ -867,7 +867,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 12%{?dist}
+Release: 13%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1796,6 +1796,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1:10.0.1.10-13
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
 * Mon Jul 02 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-12
 - Fix requires/provides filter. See RHBZ#1590796.
 
