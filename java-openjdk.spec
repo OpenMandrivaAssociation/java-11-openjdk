@@ -185,14 +185,14 @@
 
 # New Version-String scheme-style defines
 %global majorver 10
-%global securityver 1
+%global securityver 2
 
 # Standard JPackage naming and versioning defines
 %global origin          openjdk
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global minorver        0
-%global buildver        10
+%global buildver        13
 # priority must be 7 digits in total
 # setting to 1, so debug ones can have 0
 %global priority        00000%{minorver}1
@@ -867,7 +867,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 13%{?dist}
+Release: 1%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -952,22 +952,6 @@ Patch100:  JDK-8201495-s390-java-opts.patch
 Patch101:  sorted-diff.patch
 # Type fixing for s390 (Zero). Not upstream.
 Patch102:  java-openjdk-s390-size_t.patch
-# bootcycle-images target may run out of ressources
-# due to bad jobs config. Missing backports.
-Patch103:  JDK-8201788-bootcycle-images-jobs.patch
-# s390 (Zero) build fix. Pending upstream.
-Patch104:  JDK-8201509-s390-atomic_store.patch
-# libjsig.so does not receive extra ld flags when
-# being built. Not an issue on JDK 11. Missing fix for
-# 10 upstream.
-Patch105:  JDK-8202262-libjsig.so-extra-link-flags.patch
-# NPE from JarFileSystem.getVersionMap. Fixed in JDK 11,
-# not backported to JDK 10. See RHBZ#1557375 for the
-# downstream issue. Not applicable for JDK 8.
-Patch106:  JDK-8193802-npe-jar-getVersionMap.patch
-
-# aarch64 slowdebug build fix. Pending upstream
-Patch400:  JDK-8200556-aarch64-slowdebug-crash.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -1234,12 +1218,6 @@ pushd %{top_level_dir_name}
 
 %patch101 -p1
 %patch102 -p1
-%patch103 -p1
-%patch104 -p1
-%patch105 -p1
-%patch106 -p1
-
-%patch400 -p1
 
 popd # openjdk
 
@@ -1796,6 +1774,14 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Mon Jul 23 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.3.13-1
+- updated to security jdk10+3.13
+- deleted patch106 JDK-8193802-npe-jar-getVersionMap.patch
+- deleted patch400 JDK-8200556-aarch64-slowdebug-crash.patch
+- deleted patch104 JDK-8201509-s390-atomic_store.patch
+- deleted patch103 JDK-8201788-bootcycle-images-jobs.patch
+
+
 * Fri Jul 13 2018 Fedora Release Engineering <releng@fedoraproject.org> - 1:10.0.1.10-13
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
 

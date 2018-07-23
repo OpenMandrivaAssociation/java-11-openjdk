@@ -31,7 +31,7 @@ if [ "x$REPO_NAME" = "x" ] ; then
     REPO_NAME="jdk10u"
 fi
 if [ "x$VERSION" = "x" ] ; then
-    VERSION="jdk-10.0.1+10"
+    VERSION="jdk-10.0.2+13"
 fi
 
 if [ "x$COMPRESSION" = "x" ] ; then
