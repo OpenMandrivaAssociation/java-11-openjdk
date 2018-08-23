@@ -1,184 +1,71 @@
 #!/bin/bash -x
-# Generates the 'source tarball' for JDK 8 projects and update spec infrastructure
-# By default, this script regenerate source as they are currently used. 
-# so if the version of sources change, this file changes and is pushed
-#
-# In any case you have to set PROJECT_NAME REPO_NAME and VERSION. eg:
-# PROJECT_NAME=jdk9
-# REPO_NAME=jdk9
-# VERSION=inDevelopment (but keyword tip will still do its job)
-# 
-# If you don't, default are used and so already uploaded tarball regenerated
-# They are used to create correct name and are used in construction of sources url (unless REPO_ROOT is set)
-# 
-# For other useful variables see generate_source_tarball.sh
-#
-# the used values are then substituted to spec and sources
-
-if [ ! "x$PR2126" = "x" ] ; then
-  if [ ! -f "$PR2126" ] ; then
-    echo "You have specified PR2126 as $PR2126 but it does not exists. exiting"
-    exit 1
-  fi
-fi
+#  this file contains defaults for currently generated source tarballs
 
 set -e
 
-if [ "x$PROJECT_NAME" = "x" ] ; then
-    PROJECT_NAME="jdk-updates"
-fi
-if [ "x$REPO_NAME" = "x" ] ; then
-    REPO_NAME="jdk10u"
-fi
-if [ "x$VERSION" = "x" ] ; then
-    VERSION="jdk-10.0.2+13"
+# TAPSET
+export PROJECT_NAME="hg"
+export REPO_NAME="icedtea8"
+export VERSION="9d464368e06d"
+export COMPRESSION=xz
+export OPENJDK_URL=http://icedtea.classpath.org
+export FILE_NAME_ROOT=${PROJECT_NAME}-${REPO_NAME}-${VERSION}
+export TO_COMPRESS="*/tapset"
+# warning, filename  and filenameroot creation is duplicated here from generate_source_tarball.sh
+CLONED_FILENAME=${FILE_NAME_ROOT}.tar.${COMPRESSION}
+TAPSET_VERSION=3.2
+TAPSET=systemtap_"$TAPSET_VERSION"_tapsets_$CLONED_FILENAME
+if [ ! -f ${TAPSET} ] ; then
+  if [ ! -f ${CLONED_FILENAME} ] ; then
+  echo "Generating ${CLONED_FILENAME}"
+    sh ./generate_source_tarball.sh
+  else 
+    echo "exists exists exists exists exists exists exists "
+    echo "reusing reusing reusing reusing reusing reusing "
+    echo ${CLONED_FILENAME}
+  fi
+  mv -v $CLONED_FILENAME  $TAPSET
+else 
+  echo "exists exists exists exists exists exists exists "
+  echo "reusing reusing reusing reusing reusing reusing "
+  echo ${TAPSET}
 fi
 
-if [ "x$COMPRESSION" = "x" ] ; then
-# rhel 5 needs tar.gz
-    COMPRESSION=xz
-fi
-if [ "x$FILE_NAME_ROOT" = "x" ] ; then
-    FILE_NAME_ROOT=${PROJECT_NAME}-${REPO_NAME}-${VERSION}
-fi
-#if [ "x$PKG" = "x" ] ; then
-#    URL=`cat .git/config  | grep url`
-#    PKG=${URL##*/}
-#fi
-if [ "x$SPEC" = "x" ] ; then
-    SPEC=${PKG}.spec
-fi
-if [ "x$RELEASE" = "x" ] ; then
-    RELEASE=1
-fi
 
+# OpenJDK from jdk10 updates project
+export PROJECT_NAME="jdk-updates"
+export REPO_NAME="jdk10u"
+# warning, clonning without shenadnaoh suffix, you will clone pure jdk - thus without shenandaoh GC
+export VERSION="jdk-10.0.2+13"
+export COMPRESSION=xz
+# unset tapsets overrides
+export OPENJDK_URL=""
+export TO_COMPRESS=""
+# warning, filename  and filenameroot creation is duplicated here from generate_source_tarball.sh
+export FILE_NAME_ROOT=${PROJECT_NAME}-${REPO_NAME}-${VERSION}
 FILENAME=${FILE_NAME_ROOT}.tar.${COMPRESSION}
 
 if [ ! -f ${FILENAME} ] ; then
 echo "Generating ${FILENAME}"
-. ./generate_source_tarball.sh
+  sh ./generate_source_tarball.sh
 else 
-echo "${FILENAME} already exists, using"
+  echo "exists exists exists exists exists exists exists "
+  echo "reusing reusing reusing reusing reusing reusing "
+  echo ${FILENAME}
 fi
 
-echo "nothing more TBD for 10!!"
-exit 0
+set +e
 
-echo "Touching spec: $SPEC"
-sed -i "s/^%global\s\+project.*/%global project         ${PROJECT_NAME}/" $SPEC 
-sed -i "s/^%global\s\+repo.*/%global repo            ${REPO_NAME}/" $SPEC 
-sed -i "s/^%global\s\+revision.*/%global revision        ${VERSION}/" $SPEC 
-# updated sources, resetting release
-sed -i "s/^Release:.*/Release: $RELEASE.%{buildver}%{?dist}/" $SPEC
-
-#https://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance#Bash
-function levenshtein {
-	if [ "$#" -ne "2" ]; then
-		echo "Usage: $0 word1 word2" >&2
-	elif [ "${#1}" -lt "${#2}" ]; then
-		levenshtein "$2" "$1"
-	else
-		local str1len=$((${#1}))
-		local str2len=$((${#2}))
-		local d i j
-		for i in $(seq 0 $(((str1len+1)*(str2len+1)))); do
-			d[i]=0
-		done
-		for i in $(seq 0 $((str1len)));	do
-			d[$((i+0*str1len))]=$i
-		done
-		for j in $(seq 0 $((str2len)));	do
-			d[$((0+j*(str1len+1)))]=$j
-		done
-
-		for j in $(seq 1 $((str2len))); do
-			for i in $(seq 1 $((str1len))); do
-				[ "${1:i-1:1}" = "${2:j-1:1}" ] && local cost=0 || local cost=1
-				local del=$((d[(i-1)+str1len*j]+1))
-				local ins=$((d[i+str1len*(j-1)]+1))
-				local alt=$((d[(i-1)+str1len*(j-1)]+cost))
-				d[i+str1len*j]=$(echo -e "$del\n$ins\n$alt" | sort -n | head -1)
-			done
-		done
-		echo ${d[str1len+str1len*(str2len)]}
-	fi
-}
-# generate shenandoah hotspot
-# that means supply the underlying script with new values
-# to new filename.
-MAIN_VERSION=$VERSION
-if [ "x$VERSION" = "xtip" ] ; then
-    VERSION="tip"
-else
-	#hardcoding version for anything else except tip
-    VERSION="aarch64-shenandoah-jdk8u131-b12-shenandoah-merge-2017-04-20"
-fi
-MAIN_REPO_NAME=$REPO_NAME
-REPO_NAME=jdk8u-shenandoah
-MAIN_FILE_NAME_ROOT=$FILE_NAME_ROOT
-FILE_NAME_ROOT=${PROJECT_NAME}-${REPO_NAME}-${VERSION}
-FILENAME_SH=${FILE_NAME_ROOT}.tar.${COMPRESSION}
-REPOS="hotspot"
-
-if [ ! -f ${FILENAME_SH} ] ; then
-echo "Generating ${FILENAME_SH}"
-. ./generate_source_tarball.sh
-else 
-echo "${FILENAME_SH} already exists, using"
-fi
-
-sed -i "s/^Source1:.*/Source1: ${FILENAME_SH}/" $SPEC
-git --no-pager diff $SPEC
-
-# find the most similar sources name and replace it by newly generated one.
-echo "Old sources"
-cat sources
-a_sources=`cat sources | sed "s/.*(//g" | sed "s/).*//g" | sed "s/.*\s\+//g"`
-winner=""
-winnerDistance=999999
-for x in $a_sources ; do
-  distance=`levenshtein $x ${FILENAME}`
-  if [ $distance -lt $winnerDistance ] ; then
-    winner=$x
-    winnerDistance=$distance
-  fi
-done
-sum=`md5sum ${FILENAME}`
-sed -i "s;.*$winner;$sum;" sources
-# now shenandoah hotspot
-winner=""
-winnerDistance=999999
-for x in $a_sources ; do
-  distance=`levenshtein $x ${FILENAME_SH}`
-  if [ $distance -lt $winnerDistance ] ; then
-    winner=$x
-    winnerDistance=$distance
-  fi
-done
-sum=`md5sum ${FILENAME_SH}`
-sed -i "s;.*$winner;$sum;" sources
-
-echo "New sources"
-cat sources
-a_sources=`cat sources | sed "s/.*(//g" | sed "s/).*//g" | sed "s/.*\s\+//g"`
-echo "    you can get inspired by following %changelog template:"
-user_name=`whoami`
-user_record=$(getent passwd $user_name)
-user_gecos_field=$(echo "$user_record" | cut -d ':' -f 5)
-user_full_name=$(echo "$user_gecos_field" | cut -d ',' -f 1)
-spec_date=`date +"%a %b %d %Y"`
-# See spec:
-revision_helper=`echo ${MAIN_VERSION%-*}`
-updatever=`echo ${revision_helper##*u}`
-buildver=`echo ${MAIN_VERSION##*-}`
-echo "* $spec_date $user_full_name <$user_name@redhat.com> - 1:1.8.0.$updatever-$RELEASE.$buildver" 
-echo "- updated to $MAIN_VERSION (from $PROJECT_NAME/$MAIN_REPO_NAME)"
-echo "- updated to $VERSION (from $PROJECT_NAME/$REPO_NAME) of hotspot"
-echo "- used $FILENAME as new sources"
-echo "- used $FILENAME_SH as new sources for hotspot"
-
-echo "    execute:"
-echo "fedpkg/rhpkg new-sources "$a_sources
-echo "    to upload sources"
-echo "you can verify by fedpkg/rhpkg prep --arch XXXX on all architectures: x86_64 i386 i586 i686 ppc ppc64 ppc64le s390 s390x aarch64 armv7hl"
+major=`echo $REPO_NAME | sed 's/[a-zA-Z]*//g'`
+build=`echo $VERSION | sed 's/.*+//g'`
+name_helper=`echo $FILENAME | sed s/$major/'%{majorver}'/g `
+name_helper=`echo $name_helper | sed s/$build/'%{buildver}'/g `
+echo "align specfile acordingly:" 
+echo " sed 's/^Source0:.*/Source0: $name_helper/' -i *.spec"
+echo " sed 's/^Source8:.*/Source8: $TAPSET/'   -i *.spec"
+echo " sed 's/^%global buildver.*/%global buildver        $build/'   -i *.spec"
+echo " sed 's/Release:.*/Release: 1%{?dist}/'   -i *.spec"
+echo "and maybe others...."
+echo "you should fedpkg/rhpkg new-sources $TAPSET $FILENAME"
+echo "you should fedpkg/rhpkg prep --arch XXXX on all architectures: x86_64 i386 i586 i686 ppc ppc64 ppc64le s390 s390x aarch64 armv7hl"
 

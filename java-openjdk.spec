@@ -23,7 +23,7 @@
 
 # note: parametrized macros are order-sensitive (unlike not-parametrized) even with normal macros
 # also necessary when passing it as parameter to other macros. If not macro, then it is considered a switch
-# see the difference between global and deffine:
+# see the difference between global and define:
 # See https://github.com/rpm-software-management/rpm/issues/127 to comments at  "pmatilai commented on Aug 18, 2017"
 # (initiated in https://bugzilla.redhat.com/show_bug.cgi?id=1482192)
 %global debug_suffix_unquoted -slowdebug
@@ -95,8 +95,9 @@
 %global targets all docs
 %endif
 
+
 # Filter out flags from the optflags macro that cause problems with the OpenJDK build
-# We filter out -O flags so that the optimisation of HotSpot is not lowered from O3 to O2
+# We filter out -O flags so that the optimization of HotSpot is not lowered from O3 to O2
 # We filter out -Wall which will otherwise cause HotSpot to produce hundreds of thousands of warnings (100+mb logs)
 # We replace it with -Wformat (required by -Werror=format-security) and -Wno-cpp to avoid FORTIFY_SOURCE warnings
 # We filter out -fexceptions as the HotSpot build explicitly does -fno-exceptions and it's otherwise the default for C++
@@ -105,7 +106,7 @@
 %global ourldflags %{__global_ldflags}
 
 # With disabled nss is NSS deactivated, so NSS_LIBDIR can contain the wrong path
-# the initialisation must be here. Later the pkg-config have buggy behaviour
+# the initialization must be here. Later the pkg-config have buggy behavior
 # looks like openjdk RPM specific bug
 # Always set this so the nss.cfg file is not broken
 %global NSS_LIBDIR %(pkg-config --variable=libdir nss)
@@ -199,7 +200,6 @@
 %global newjavaver      %{majorver}.%{minorver}.%{securityver}
 
 %global javaver         %{majorver}
-%global systemtap_javaver 9
 
 # parametrized macros are order-sensitive
 %global compatiblename  java-%{majorver}-%{origin}
@@ -226,9 +226,9 @@
 
 %if %{with_systemtap}
 # Where to install systemtap tapset (links)
-# We would like these to be in a package specific subdir,
+# We would like these to be in a package specific sub-dir,
 # but currently systemtap doesn't support that, so we have to
-# use the root tapset dir for now. To distinquish between 64
+# use the root tapset dir for now. To distinguish between 64
 # and 32 bit architectures we place the tapsets under the arch
 # specific dir (note that systemtap will only pickup the tapset
 # for the primary arch for now). Systemtap uses the machine name
@@ -308,7 +308,7 @@ update-desktop-database %{_datadir}/applications &> /dev/null || :
 /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
 
 # see pretrans where this file is declared
-# also see that pretrans is only for nondebug
+# also see that pretrans is only for non-debug
 if [ ! "%{?1}" == %{debug_suffix} ]; then
   if [ -f %{_libexecdir}/copy_jdk_configs_fixFiles.sh ] ; then
     sh  %{_libexecdir}/copy_jdk_configs_fixFiles.sh %{rpm_state_dir}/%{name}.%{_arch}  %{_jvmdir}/%{sdkdir -- %{?1}}
@@ -509,7 +509,6 @@ exit 0
 
 
 %define files_jre_headless() %{expand:
-%defattr(-,root,root,-)
 %license %{_jvmdir}/%{sdkdir -- %{?1}}/legal
 %dir %{_sysconfdir}/.java/.systemPrefs
 %dir %{_sysconfdir}/.java
@@ -617,14 +616,11 @@ exit 0
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/management/management.properties
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/net.properties
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/sound.properties
-# accessibility have package over user maintainnce, so not config-norepalce
-%config  %{etcjavadir -- %{?1}}/conf/accessibility.properties
 %{_jvmdir}/%{sdkdir -- %{?1}}/conf
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/security
 }
 
 %define files_devel() %{expand:
-%defattr(-,root,root,-)
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/bin
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/appletviewer
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/idlj
@@ -698,31 +694,26 @@ exit 0
 }
 
 %define files_jmods() %{expand:
-%defattr(-,root,root,-)
 %{_jvmdir}/%{sdkdir -- %{?1}}/jmods
 }
 
 %define files_demo() %{expand:
-%defattr(-,root,root,-)
 %license %{_jvmdir}/%{sdkdir -- %{?1}}/legal
 %{_jvmdir}/%{sdkdir -- %{?1}}/demo
 %{_jvmdir}/%{sdkdir -- %{?1}}/sample
 }
 
 %define files_src() %{expand:
-%defattr(-,root,root,-)
 %license %{_jvmdir}/%{sdkdir -- %{?1}}/legal
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/src.zip
 }
 
 %define files_javadoc() %{expand:
-%defattr(-,root,root,-)
 %doc %{_javadocdir}/%{uniquejavadocdir -- %{?1}}
 %license %{buildoutputdir -- %{?1}}/images/%{jdkimage}/legal
 }
 
 %define files_javadoc_zip() %{expand:
-%defattr(-,root,root,-)
 %doc %{_javadocdir}/%{uniquejavadocdir -- %{?1}}.zip
 %license %{buildoutputdir -- %{?1}}/images/%{jdkimage}/legal
 }
@@ -731,12 +722,13 @@ exit 0
 %define java_rpo() %{expand:
 Requires: fontconfig%{?_isa}
 Requires: xorg-x11-fonts-Type1
-
 # Requires rest of java
 Requires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
 OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
+# for java-X-openjdk package's desktop binding
+Recommends: gtk3%{?_isa}
 
-Provides: java-%{javaver}-%{origin} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 
 # Standard JPackage base provides
 Provides: jre = %{javaver}%{?1}
@@ -751,9 +743,9 @@ Provides: java%{?1} = %{epoch}:%{javaver}
 %define java_headless_rpo() %{expand:
 # Require /etc/pki/java/cacerts
 Requires: ca-certificates
-# Require javapackages-filesystem for ownership of /usr/lib/jvm/
+# Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
 Requires: javapackages-filesystem
-# Require zoneinfo data provided by tzdata-java sub-package
+# Require zone-info data provided by tzdata-java sub-package
 Requires: tzdata-java >= 2015d
 # libsctp.so.1 is being `dlopen`ed on demand
 Requires: lksctp-tools%{?_isa}
@@ -773,6 +765,8 @@ Requires(post):   chkconfig >= 1.7
 Requires(postun): %{_sbindir}/alternatives
 # in version 1.7 and higher for --family switch
 Requires(postun):   chkconfig >= 1.7
+# for optional support of kernel stream control, card reader and printing bindings
+Suggests: lksctp-tools%{?_isa}, pcsc-lite-devel%{?_isa}, cups
 
 # Standard JPackage base provides
 Provides: jre-headless%{?1} = %{epoch}:%{javaver}
@@ -816,7 +810,7 @@ Provides: java-%{javaver}-%{origin}-devel%{?1} = %{epoch}:%{version}
 
 %define java_jmods_rpo() %{expand:
 # Requires devel package
-# as jmods are bytecode, they should be ok without any _isa
+# as jmods are bytecode, they should be OK without any _isa
 Requires:         %{name}-devel%{?1} = %{epoch}:%{version}-%{release}
 OrderWithRequires: %{name}-headless%{?1} = %{epoch}:%{version}-%{release}
 
@@ -867,7 +861,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 1%{?dist}
+Release: 7%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -895,13 +889,11 @@ Group:   Development/Languages
 License:  ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib
 URL:      http://openjdk.java.net/
 
-Source0:  jdk-updates-jdk%{majorver}u-jdk-%{newjavaver}+%{buildver}.tar.xz
 
-# Use 'generate_tarballs.sh' to generate the following tarballs
-# They are based on code contained in the IcedTea7 project
-
-# Systemtap tapsets. Zipped up to keep it small
-Source8: systemtap-tapset-3.6.0pre02.tar.xz
+# to regenerate source0 (jdk) and source8 (jdk's taspets) run update_package.sh
+# update_package.sh contains hard-coded repos, revisions, tags, and projects to regenerate the source archives
+Source0: shenandoah-jdk%{majorver}-shenandoah-jdk-%{majorver}+%{buildver}.tar.xz
+Source8: systemtap_3.2_tapsets_hg-icedtea8-9d464368e06d.tar.xz
 
 # Desktop files. Adapted from IcedTea
 Source9: jconsole.desktop.in
@@ -959,14 +951,14 @@ BuildRequires: alsa-lib-devel
 BuildRequires: binutils
 BuildRequires: cups-devel
 BuildRequires: desktop-file-utils
-# elfutils only are ok for build without AOT
+# elfutils only are OK for build without AOT
 BuildRequires: elfutils-devel
 BuildRequires: fontconfig
 BuildRequires: freetype-devel
 BuildRequires: giflib-devel
 BuildRequires: gcc-c++
 BuildRequires: gdb
-BuildRequires: gtk2-devel
+BuildRequires: gtk3-devel
 BuildRequires: lcms2-devel
 BuildRequires: libjpeg-devel
 BuildRequires: libpng-devel
@@ -981,9 +973,7 @@ BuildRequires: nss-devel
 BuildRequires: pkgconfig
 BuildRequires: xorg-x11-proto-devel
 BuildRequires: zip
-# since we require only javapackages-filesystem we have to require whole javapackages-tools in build-time to have various _jvm macros expanded
-# note, that this dependency is bringing current main JDK into buildroot
-BuildRequires: javapackages-tools
+BuildRequires: javapackages-filesystem
 BuildRequires: java-openjdk-devel
 # Zero-assembler build requirement
 %ifnarch %{jit_arches}
@@ -1117,7 +1107,8 @@ Group:   Development/Languages
 %{java_src_rpo %{nil}}
 
 %description src
-The java-%{origin}-src sub-package contains the complete %{origin_nice} %{majorver} class library source code for use by IDE indexers and debuggers.
+The java-%{origin}-src sub-package contains the complete %{origin_nice} %{majorver}
+class library source code for use by IDE indexers and debuggers.
 %endif
 
 %if %{include_debug_build}
@@ -1128,7 +1119,8 @@ Group:   Development/Languages
 %{java_src_rpo -- %{debug_suffix_unquoted}}
 
 %description src-slowdebug
-The java-%{origin}-src-slowdebug sub-package contains the complete %{origin_nice} %{majorver} class library source code for use by IDE indexers and debuggers. Debugging %{for_debug}.
+The java-%{origin}-src-slowdebug sub-package contains the complete %{origin_nice} %{majorver}
+ class library source code for use by IDE indexers and debuggers. Debugging %{for_debug}.
 %endif
 
 %if %{include_normal_build}
@@ -1225,7 +1217,7 @@ popd # openjdk
 
 # Extract systemtap tapsets
 %if %{with_systemtap}
-tar -x -I xz -f %{SOURCE8}
+tar --strip-components=1 -x -I xz -f %{SOURCE8}
 %if %{include_debug_build}
 cp -r tapset tapset%{debug_suffix}
 %endif
@@ -1233,7 +1225,7 @@ cp -r tapset tapset%{debug_suffix}
 
 for suffix in %{build_loop} ; do
   for file in "tapset"$suffix/*.in; do
-    OUTPUT_FILE=`echo $file | sed -e "s:%{systemtap_javaver}\.stp\.in$:%{version}-%{release}.%{_arch}.stp:g"`
+    OUTPUT_FILE=`echo $file | sed -e "s:\.stp\.in$:%{version}-%{release}.%{_arch}.stp:g"`
     sed -e "s:@ABS_SERVER_LIBJVM_SO@:%{_jvmdir}/%{sdkdir -- $suffix}/lib/server/libjvm.so:g" $file > $file.1
 # TODO find out which architectures other than i686 have a client vm
 %ifarch %{ix86}
@@ -1269,7 +1261,7 @@ sed -e "s:@NSS_LIBDIR@:%{NSS_LIBDIR}:g" %{SOURCE11} > nss.cfg
 
 
 %build
-# How many cpu's do we have?
+# How many CPU's do we have?
 export NUM_PROC=%(/usr/bin/getconf _NPROCESSORS_ONLN 2> /dev/null || :)
 export NUM_PROC=${NUM_PROC:-1}
 %if 0%{?_smp_ncpus_max}
@@ -1308,6 +1300,9 @@ else
   debugbuild=`echo $suffix  | sed "s/-//g"`
 fi
 
+# Variable used in hs_err hook on build failures
+top_dir_abs_path=$(pwd)/%{top_level_dir_name}
+
 mkdir -p %{buildoutputdir -- $suffix}
 pushd %{buildoutputdir -- $suffix}
 
@@ -1344,7 +1339,7 @@ make \
     LOG=trace \
     WARNINGS_ARE_ERRORS="-Wno-error" \
     CFLAGS_WARNINGS_ARE_ERRORS="-Wno-error" \
-    %{targets}
+    %{targets} || ( pwd; find $top_dir_abs_path -name "hs_err_pid*.log" | xargs cat && false )
 
 make docs-zip
 
@@ -1505,12 +1500,12 @@ pushd %{buildoutputdir $suffix}/images/%{jdkimage}
 
   # Remove empty cacerts database
   rm -f $RPM_BUILD_ROOT%{_jvmdir}/%{sdkdir -- $suffix}/lib/security/cacerts
-  # Install cacerts symlink needed by some apps which hardcode the path
+  # Install cacerts symlink needed by some apps which hard-code the path
   pushd $RPM_BUILD_ROOT%{_jvmdir}/%{sdkdir -- $suffix}/lib/security
       ln -sf /etc/pki/java/cacerts .
   popd
 
-  # Install versioned symlinks
+  # Install version-ed symlinks
   pushd $RPM_BUILD_ROOT%{_jvmdir}
     ln -sf %{sdkdir -- $suffix} %{jrelnk -- $suffix}
   popd
@@ -1561,12 +1556,6 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/.java/.systemPrefs
 # copy samples next to demos; samples are mostly js files
 cp -r %{top_level_dir_name}/src/sample  $RPM_BUILD_ROOT/%{_jvmdir}/%{sdkdir -- $suffix}/
 
-pushd $RPM_BUILD_ROOT/%{_jvmdir}/%{sdkdir -- $suffix}/conf/
-  echo "#Config file to  enable java-atk-wrapper" > accessibility.properties
-  echo "" >> accessibility.properties
-  echo "assistive_technologies=org.GNOME.Accessibility.AtkWrapper" >> accessibility.properties
-  echo "" >> accessibility.properties
-popd
 
 # moving config files to /etc
 mkdir -p $RPM_BUILD_ROOT/%{etcjavadir -- $suffix}
@@ -1595,7 +1584,7 @@ done
 -- see https://bugzilla.redhat.com/show_bug.cgi?id=1038092 for whole issue
 -- see https://bugzilla.redhat.com/show_bug.cgi?id=1290388 for pretrans over pre
 -- if copy-jdk-configs is in transaction, it installs in pretrans to temp
--- if copy_jdk_configs is in temp, then it means that copy-jdk-configs is in tranasction  and so is
+-- if copy_jdk_configs is in temp, then it means that copy-jdk-configs is in transaction  and so is
 -- preferred over one in %%{_libexecdir}. If it is not in transaction, then depends
 -- whether copy-jdk-configs is installed or not. If so, then configs are copied
 -- (copy_jdk_configs from %%{_libexecdir} used) or not copied at all
@@ -1616,7 +1605,7 @@ local stat2 = posix.stat(SOURCE2, "type");
 else
   if (stat2 ~= nil) then
   if (debug) then
-    print(SOURCE2 .." exists - copy-jdk-configs alrady installed and NOT in transation. Using.")
+    print(SOURCE2 .." exists - copy-jdk-configs already installed and NOT in transaction. Using.")
   end;
   package.path = package.path .. ";" .. SOURCE2
   else
@@ -1740,7 +1729,7 @@ require "copy_jdk_configs.lua"
 
 # this puts huge file to /usr/share
 # unluckily ti is really a documentation file
-# and unluckily it really is archtecture-depndent, as ag aot and grail are now x86_64 only
+# and unluckily it really is architecture-dependent, as eg. aot and grail are now x86_64 only
 # same for debug variant
 %files javadoc-zip
 %{files_javadoc_zip %{nil}}
@@ -1774,6 +1763,12 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Thu Aug 23 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.3.13-6
+- dissabled accessibility, fixed provides for main package's debug variant
+- now buildrequires javapackages-filesystem as the  issue with macros should be fixed
+- moved to versionless tapsets
+- many small tweeks from ojdk11
+
 * Mon Jul 23 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.3.13-1
 - updated to security jdk10+3.13
 - deleted patch106 JDK-8193802-npe-jar-getVersionMap.patch

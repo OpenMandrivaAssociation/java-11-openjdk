@@ -7,9 +7,16 @@
 # if you wont to use local copy of patch PR2126 set path to it to PR2126 variable
 #
 # In any case you have to set PROJECT_NAME REPO_NAME and VERSION. eg:
-# PROJECT_NAME=jdk9
-# REPO_NAME=jdk9
-# VERSION=inDevelopment (but keyword tip will still do its job)
+# PROJECT_NAME=jdk
+# REPO_NAME=jdk
+# VERSION=tip
+# or to eg prepare systemtap:
+# icedtea7's jstack and other tapsets
+# VERSION=6327cf1cea9e
+# REPO_NAME=icedtea7-2.6
+# PROJECT_NAME=release
+# OPENJDK_URL=http://icedtea.classpath.org/hg/
+# TO_COMPRESS="*/tapset"
 # 
 # They are used to create correct name and are used in construction of sources url (unless REPO_ROOT is set)
 
@@ -25,6 +32,7 @@ if [ ! "x$PR2126" = "x" ] ; then
     exit 1
   fi
 fi
+
 set -e
 
 OPENJDK_URL_DEFAULT=http://hg.openjdk.java.net
@@ -39,8 +47,8 @@ if [ "x$1" = "xhelp" ] ; then
     echo "COMPRESSION - the compression type to use (optional; defaults to ${COMPRESSION_DEFAULT})"
     echo "FILE_NAME_ROOT - name of the archive, minus extensions (optional; defaults to PROJECT_NAME-REPO_NAME-VERSION)"
     echo "REPO_ROOT - the location of the Mercurial repository to archive (optional; defaults to OPENJDK_URL/PROJECT_NAME/REPO_NAME)"
+    echo "TO_COMPRESS - what part of clone to pack (default is openjdk)"
     echo "PR2126 - the path to the PR2126 patch to apply (optional; downloaded if unavailable)"
-    echo "REPOS - specify the repositories to use (optional; defaults to ${REPOS_DEFAULT})"
     exit 1;
 fi
 
@@ -87,10 +95,15 @@ if [ "x$REPO_ROOT" = "x" ] ; then
     echo "No repository root specified; default to ${REPO_ROOT}"
 fi;
 
+if [ "x$TO_COMPRESS" = "x" ] ; then
+    TO_COMPRESS="openjdk"
+    echo "No to be compressed targets specified, ; default to ${TO_COMPRESS}"
+fi;
+
 if [ -d ${FILE_NAME_ROOT} ] ; then
-  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-  echo "${FILE_NAME_ROOT} exists, reusing !!!!!!!"
-  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  echo "exists exists exists exists exists exists exists "
+  echo "reusing reusing reusing reusing reusing reusing "
+  echo ${FILE_NAME_ROOT}
 else
   mkdir "${FILE_NAME_ROOT}"
   pushd "${FILE_NAME_ROOT}"
@@ -99,33 +112,34 @@ else
   popd
 fi
 pushd "${FILE_NAME_ROOT}"
-  pushd openjdk
-    if [ -d src ]; then 
-      echo "Removing EC source code we don't build"
-      CRYPTO_PATH=src/jdk.crypto.ec/share/native/libsunec/impl
-      rm -vrf $CRYPTO_PATH
-      echo "Syncing EC list with NSS"
-      if [ "x$PR2126" = "x" ] ; then
-        # orriginally for 8:
-        # get pr2126.patch (from http://icedtea.classpath.org/hg/icedtea?cmd=changeset;node=8d2c9a898f50) from most correct tag
-        # Do not push it or publish it (see http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=2126)
-        # there is currnetly no "upstram version of this patch, hardcoding custom version
-        PR2126="../../pr2126-10.patch"
-      fi;
-      echo "Applying ${PR2126}"
-      patch -Np1 < $PR2126
+    if [ -d openjdk/src ]; then 
+        pushd openjdk
+            echo "Removing EC source code we don't build"
+            CRYPTO_PATH=src/jdk.crypto.ec/share/native/libsunec/impl
+            rm -vrf $CRYPTO_PATH
+            echo "Syncing EC list with NSS"
+            if [ "x$PR2126" = "x" ] ; then
+                # orriginally for 8:
+                # get pr2126.patch (from http://icedtea.classpath.org/hg/icedtea?cmd=changeset;node=8d2c9a898f50) from most correct tag
+                # Do not push it or publish it (see http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=2126)
+                # there is currnetly no "upstram version of this patch, hardcoding custom version
+                PR2126="../../pr2126-10.patch"
+            fi;
+            echo "Applying ${PR2126}"
+            patch -Np1 < $PR2126
+            find . -name '*.orig' -exec rm -vf '{}' ';'
+        popd
     fi
-    find . -name '*.orig' -exec rm -vf '{}' ';'
-  popd
 
-  echo "Compressing remaining forest"
-  if [ "X$COMPRESSION" = "Xxz" ] ; then
-    tar --exclude-vcs -cJf ${FILE_NAME_ROOT}.tar.${COMPRESSION} openjdk
-  else
-    tar --exclude-vcs -czf ${FILE_NAME_ROOT}.tar.${COMPRESSION} openjdk
-  fi
-  mv ${FILE_NAME_ROOT}.tar.${COMPRESSION}  ..
+    echo "Compressing remaining forest"
+    if [ "X$COMPRESSION" = "Xxz" ] ; then
+        SWITCH=cJf
+    else
+        SWITCH=czf
+    fi
+    tar --exclude-vcs -$SWITCH ${FILE_NAME_ROOT}.tar.${COMPRESSION} $TO_COMPRESS
+    mv ${FILE_NAME_ROOT}.tar.${COMPRESSION}  ..
 popd
-echo "Done. You may want to remove the uncompressed version."
+echo "Done. You may want to remove the uncompressed version - $FILE_NAME_ROOT."
 
 
