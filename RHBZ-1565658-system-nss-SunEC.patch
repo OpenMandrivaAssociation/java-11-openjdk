@@ -99,8 +99,13 @@ diff --git openjdk/make/lib/Lib-jdk.crypto.ec.gmk openjdk/make/lib/Lib-jdk.crypt
    #
    # On sol-sparc...all libraries are compiled with -xregs=no%appl
    # (set in CFLAGS_REQUIRED_sparc)
-@@ -60,7 +66,7 @@
-       LDFLAGS := $(LDFLAGS_JDKLIB) $(LDFLAGS_CXX_JDK), \
+@@ -57,10 +63,11 @@
+       DISABLED_WARNINGS_gcc := sign-compare, \
+       DISABLED_WARNINGS_microsoft := 4101 4244 4146 4018, \
+       MAPFILE := $(TOPDIR)/make/mapfiles/libsunec/mapfile-vers, \
+-      LDFLAGS := $(LDFLAGS_JDKLIB) $(LDFLAGS_CXX_JDK), \
++      LDFLAGS := $(subst -Xlinker --as-needed,, \
++                 $(subst -Wl$(COMMA)--as-needed,, $(LDFLAGS_JDKLIB))) $(LDFLAGS_CXX_JDK), \
        LDFLAGS_macosx := $(call SET_SHARED_LIBRARY_ORIGIN), \
        LIBS := $(LIBCXX), \
 -      LIBS_linux := -lc, \
