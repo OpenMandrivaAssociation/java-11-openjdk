@@ -1,96 +1,108 @@
-diff --git a/src/java.base/share/classes/sun/security/ssl/NamedGroup.java b/src/java.base/share/classes/sun/security/ssl/NamedGroup.java
---- openjdk/src/java.base/share/classes/sun/security/ssl/NamedGroup.java
-+++ openjdk/src/java.base/share/classes/sun/security/ssl/NamedGroup.java
-@@ -34,57 +34,6 @@
-     //
-     // See sun.security.util.CurveDB for the OIDs
- 
--    // NIST K-163
--    SECT163_K1(1, NAMED_GROUP_ECDHE, "sect163k1", "1.3.132.0.1", true),
--
--    SECT163_R1(2, NAMED_GROUP_ECDHE, "sect163r1", "1.3.132.0.2", false),
--
--    // NIST B-163
--    SECT163_R2(3, NAMED_GROUP_ECDHE, "sect163r2", "1.3.132.0.15", true),
--
--    SECT193_R1(4, NAMED_GROUP_ECDHE, "sect193r1", "1.3.132.0.24", false),
--    SECT193_R2(5, NAMED_GROUP_ECDHE, "sect193r2", "1.3.132.0.25", false),
--
--    // NIST K-233
--    SECT233_K1(6, NAMED_GROUP_ECDHE, "sect233k1", "1.3.132.0.26", true),
--
--    // NIST B-233
--    SECT233_R1(7, NAMED_GROUP_ECDHE, "sect233r1", "1.3.132.0.27", true),
--
--    SECT239_K1(8, NAMED_GROUP_ECDHE, "sect239k1", "1.3.132.0.3", false),
--
--    // NIST K-283
--    SECT283_K1(9, NAMED_GROUP_ECDHE, "sect283k1", "1.3.132.0.16", true),
--
--    // NIST B-283
--    SECT283_R1(10, NAMED_GROUP_ECDHE, "sect283r1", "1.3.132.0.17", true),
--
--    // NIST K-409
--    SECT409_K1(11, NAMED_GROUP_ECDHE, "sect409k1", "1.3.132.0.36", true),
--
--    // NIST B-409
--    SECT409_R1(12, NAMED_GROUP_ECDHE, "sect409r1", "1.3.132.0.37", true),
--
--    // NIST K-571
--    SECT571_K1(13, NAMED_GROUP_ECDHE, "sect571k1", "1.3.132.0.38", true),
--
--    // NIST B-571
--    SECT571_R1(14, NAMED_GROUP_ECDHE, "sect571r1", "1.3.132.0.39", true),
--
--    SECP160_K1(15, NAMED_GROUP_ECDHE, "secp160k1", "1.3.132.0.9", false),
--    SECP160_R1(16, NAMED_GROUP_ECDHE, "secp160r1", "1.3.132.0.8", false),
--    SECP160_R2(17, NAMED_GROUP_ECDHE, "secp160r2", "1.3.132.0.30", false),
--    SECP192_K1(18, NAMED_GROUP_ECDHE, "secp192k1", "1.3.132.0.31", false),
--
--    // NIST P-192
--    SECP192_R1(19, NAMED_GROUP_ECDHE, "secp192r1", "1.2.840.10045.3.1.1", true),
--
--    SECP224_K1(20, NAMED_GROUP_ECDHE, "secp224k1", "1.3.132.0.32", false),
--    // NIST P-224
--    SECP224_R1(21, NAMED_GROUP_ECDHE, "secp224r1", "1.3.132.0.33", true),
--
--    SECP256_K1(22, NAMED_GROUP_ECDHE, "secp256k1", "1.3.132.0.10", false),
--
-     // NIST P-256
-     SECP256_R1(23, NAMED_GROUP_ECDHE, "secp256r1", "1.2.840.10045.3.1.7", true),
- 
 diff --git a/src/java.base/share/classes/sun/security/ssl/SupportedGroupsExtension.java b/src/java.base/share/classes/sun/security/ssl/SupportedGroupsExtension.java
 --- openjdk/src/java.base/share/classes/sun/security/ssl/SupportedGroupsExtension.java
 +++ openjdk/src/java.base/share/classes/sun/security/ssl/SupportedGroupsExtension.java
-@@ -116,12 +116,6 @@
-                     NamedGroup.SECP256_R1,
-                     NamedGroup.SECP384_R1,
-                     NamedGroup.SECP521_R1,
--                    NamedGroup.SECT283_K1,
--                    NamedGroup.SECT283_R1,
--                    NamedGroup.SECT409_K1,
--                    NamedGroup.SECT409_R1,
--                    NamedGroup.SECT571_K1,
--                    NamedGroup.SECT571_R1,
- 
-                     // FFDHE 2048
-                     NamedGroup.FFDHE_2048,
-@@ -136,15 +130,6 @@
-                     NamedGroup.SECP256_R1,
-                     NamedGroup.SECP384_R1,
-                     NamedGroup.SECP521_R1,
--                    NamedGroup.SECT283_K1,
--                    NamedGroup.SECT283_R1,
--                    NamedGroup.SECT409_K1,
--                    NamedGroup.SECT409_R1,
--                    NamedGroup.SECT571_K1,
--                    NamedGroup.SECT571_R1,
+@@ -180,72 +180,6 @@
+         // Elliptic Curves (RFC 4492)
+         //
+         // See sun.security.util.CurveDB for the OIDs
+-        // NIST K-163
+-        SECT163_K1  (0x0001, "sect163k1", "1.3.132.0.1", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECT163_R1  (0x0002, "sect163r1", "1.3.132.0.2", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
 -
--                    // non-NIST curves
--                    NamedGroup.SECP256_K1,
+-        // NIST B-163
+-        SECT163_R2  (0x0003, "sect163r2", "1.3.132.0.15", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECT193_R1  (0x0004, "sect193r1", "1.3.132.0.24", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECT193_R2  (0x0005, "sect193r2", "1.3.132.0.25", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST K-233
+-        SECT233_K1  (0x0006, "sect233k1", "1.3.132.0.26", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST B-233
+-        SECT233_R1  (0x0007, "sect233r1", "1.3.132.0.27", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECT239_K1  (0x0008, "sect239k1", "1.3.132.0.3", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST K-283
+-        SECT283_K1  (0x0009, "sect283k1", "1.3.132.0.16", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST B-283
+-        SECT283_R1  (0x000A, "sect283r1", "1.3.132.0.17", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST K-409
+-        SECT409_K1  (0x000B, "sect409k1", "1.3.132.0.36", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST B-409
+-        SECT409_R1  (0x000C, "sect409r1", "1.3.132.0.37", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST K-571
+-        SECT571_K1  (0x000D, "sect571k1", "1.3.132.0.38", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST B-571
+-        SECT571_R1  (0x000E, "sect571r1", "1.3.132.0.39", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECP160_K1  (0x000F, "secp160k1", "1.3.132.0.9", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECP160_R1  (0x0010, "secp160r1", "1.3.132.0.8", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECP160_R2  (0x0011, "secp160r2", "1.3.132.0.30", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECP192_K1  (0x0012, "secp192k1", "1.3.132.0.31", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-
+-        // NIST P-192
+-        SECP192_R1  (0x0013, "secp192r1", "1.2.840.10045.3.1.1", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECP224_K1  (0x0014, "secp224k1", "1.3.132.0.32", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        // NIST P-224
+-        SECP224_R1  (0x0015, "secp224r1", "1.3.132.0.33", true,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
+-        SECP256_K1  (0x0016, "secp256k1", "1.3.132.0.10", false,
+-                            ProtocolVersion.PROTOCOLS_TO_12),
  
-                     // FFDHE 2048
-                     NamedGroup.FFDHE_2048,
+         // NIST P-256
+         SECP256_R1  (0x0017, "secp256r1", "1.2.840.10045.3.1.7", true,
+@@ -116,12 +116,6 @@
+                         NamedGroup.SECP256_R1,
+                         NamedGroup.SECP384_R1,
+                         NamedGroup.SECP521_R1,
+-                        NamedGroup.SECT283_K1,
+-                        NamedGroup.SECT283_R1,
+-                        NamedGroup.SECT409_K1,
+-                        NamedGroup.SECT409_R1,
+-                        NamedGroup.SECT571_K1,
+-                        NamedGroup.SECT571_R1,
+ 
+                         // FFDHE 2048
+                         NamedGroup.FFDHE_2048,
+@@ -136,15 +130,6 @@
+                         NamedGroup.SECP256_R1,
+                         NamedGroup.SECP384_R1,
+                         NamedGroup.SECP521_R1,
+-                        NamedGroup.SECT283_K1,
+-                        NamedGroup.SECT283_R1,
+-                        NamedGroup.SECT409_K1,
+-                        NamedGroup.SECT409_R1,
+-                        NamedGroup.SECT571_K1,
+-                        NamedGroup.SECT571_R1,
+-
+-                        // non-NIST curves
+-                        NamedGroup.SECP256_K1,
+ 
+                         // FFDHE 2048
+                         NamedGroup.FFDHE_2048,
 diff --git a/src/java.base/share/classes/sun/security/util/CurveDB.java b/src/java.base/share/classes/sun/security/util/CurveDB.java
 --- openjdk/src/java.base/share/classes/sun/security/util/CurveDB.java
 +++ openjdk/src/java.base/share/classes/sun/security/util/CurveDB.java

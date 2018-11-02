@@ -54,7 +54,7 @@
 %global ppc64be         ppc64 ppc64p7
 %global multilib_arches %{power64} sparc64 x86_64
 %global jit_arches      %{ix86} x86_64 sparcv9 sparc64 %{aarch64} %{power64} %{arm} s390x
-%global aot_arches      x86_64
+%global aot_arches      x86_64 %{aarch64}
 
 # By default, we build a debug build during main build on JIT architectures
 %if %{with slowdebug}
@@ -69,6 +69,13 @@
 %endif
 %else
 %global include_debug_build 0
+%endif
+
+# On x86_64 and AArch64, we use the Shenandoah HotSpot
+%ifarch x86_64 %{aarch64}
+%global use_shenandoah_hotspot 1
+%else
+%global use_shenandoah_hotspot 0
 %endif
 
 %if %{include_debug_build}
@@ -120,12 +127,8 @@
 %global NSS_BUILDTIME_VERSION %(if [ "x%{NSS_BUILDTIME_NUMBER}" == "x" ] ; then echo "" ;else echo ">= %{NSS_BUILDTIME_NUMBER}" ;fi)
 
 
-# Fix for https://bugzilla.redhat.com/show_bug.cgi?id=1111349.
-# See also https://bugzilla.redhat.com/show_bug.cgi?id=1590796
-# as to why some libraries *cannot* be excluded. In particular,
-# these are:
-# libjsig.so, libjava.so, libjawt.so, libjvm.so and libverify.so
-%global _privatelibs libjsoundalsa[.]so.*|libsplashscreen[.]so.*|libawt_xawt[.]so.*|libjli[.]so.*|libattach[.]so.*|libawt[.]so.*|libextnet[.]so.*|libawt_headless[.]so.*|libdt_socket[.]so.*|libfontmanager[.]so.*|libinstrument[.]so.*|libj2gss[.]so.*|libj2pcsc[.]so.*|libj2pkcs11[.]so.*|libjaas_unix[.]so.*|libjavajpeg[.]so.*|libjdwp[.]so.*|libjimage[.]so.*|libjsound[.]so.*|liblcms[.]so.*|libmanagement[.]so.*|libmanagement_agent[.]so.*|libmanagement_ext[.]so.*|libmlib_image[.]so.*|libnet[.]so.*|libnio[.]so.*|libprefs[.]so.*|librmi[.]so.*|libsaproc[.]so.*|libsctp[.]so.*|libsunec[.]so.*|libunpack[.]so.*|libzip[.]so.*|lib[.]so\\(SUNWprivate_.*
+# fix for https://bugzilla.redhat.com/show_bug.cgi?id=1111349
+%global _privatelibs libsplashscreen[.]so.*|libawt_xawt[.]so.*|libjli[.]so.*|libattach[.]so.*|libawt[.]so.*|libextnet[.]so.*|libawt_headless[.]so.*|libdt_socket[.]so.*|libfontmanager[.]so.*|libinstrument[.]so.*|libj2gss[.]so.*|libj2pcsc[.]so.*|libj2pkcs11[.]so.*|libjaas[.]so.*|libjavajpeg[.]so.*|libjdwp[.]so.*|libjimage[.]so.*|libjsound[.]so.*|liblcms[.]so.*|libmanagement[.]so.*|libmanagement_agent[.]so.*|libmanagement_ext[.]so.*|libmlib_image[.]so.*|libnet[.]so.*|libnio[.]so.*|libprefs[.]so.*|librmi[.]so.*|libsaproc[.]so.*|libsctp[.]so.*|libsunec[.]so.*|libunpack[.]so.*|libzip[.]so.*
 
 %global __provides_exclude ^(%{_privatelibs})$
 %global __requires_exclude ^(%{_privatelibs})$
@@ -185,8 +188,21 @@
 %endif
 
 # New Version-String scheme-style defines
-%global majorver 10
-%global securityver 2
+%global majorver 11
+%global securityver 1
+# Used via new version scheme. JDK 11 was
+# GA'ed in September 2018 => 18.9
+%global vendor_version_string 18.9
+# Add LTS designator for RHEL builds
+%if 0%{?rhel}
+  # the rolling release isneverpacked for rhel,
+  # nro even in epel, will this LTS be used
+  %global lts_designator "LTS"
+  %global lts_designator_zip -%{lts_designator}
+%else
+  %global lts_designator ""
+  %global lts_designator_zip ""
+%endif
 
 # Standard JPackage naming and versioning defines
 %global origin          openjdk
@@ -209,7 +225,7 @@
 # output dir stub
 %define buildoutputdir() %{expand:openjdk/build%{?1}}
 # we can copy the javadoc to not arched dir, or make it not noarch
-%define uniquejavadocdir()    %{expand:%{fullversion}%{?1}}
+%define uniquejavadocdir()    %{expand:%{fullversion}.%{_arch}%{?1}}
 # main id and dir of this jdk
 %define uniquesuffix()        %{expand:%{fullversion}.%{_arch}%{?1}}
 
@@ -269,12 +285,9 @@ alternatives \\
   --slave %{_jvmdir}/jre jre %{_jvmdir}/%{sdkdir -- %{?1}} \\
   --slave %{_bindir}/jjs jjs %{jrebindir -- %{?1}}/jjs \\
   --slave %{_bindir}/keytool keytool %{jrebindir -- %{?1}}/keytool \\
-  --slave %{_bindir}/orbd orbd %{jrebindir -- %{?1}}/orbd \\
   --slave %{_bindir}/pack200 pack200 %{jrebindir -- %{?1}}/pack200 \\
   --slave %{_bindir}/rmid rmid %{jrebindir -- %{?1}}/rmid \\
   --slave %{_bindir}/rmiregistry rmiregistry %{jrebindir -- %{?1}}/rmiregistry \\
-  --slave %{_bindir}/servertool servertool %{jrebindir -- %{?1}}/servertool \\
-  --slave %{_bindir}/tnameserv tnameserv %{jrebindir -- %{?1}}/tnameserv \\
   --slave %{_bindir}/unpack200 unpack200 %{jrebindir -- %{?1}}/unpack200 \\
   --slave %{_mandir}/man1/java.1$ext java.1$ext \\
   %{_mandir}/man1/java-%{uniquesuffix -- %{?1}}.1$ext \\
@@ -282,18 +295,12 @@ alternatives \\
   %{_mandir}/man1/jjs-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/keytool.1$ext keytool.1$ext \\
   %{_mandir}/man1/keytool-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/orbd.1$ext orbd.1$ext \\
-  %{_mandir}/man1/orbd-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/pack200.1$ext pack200.1$ext \\
   %{_mandir}/man1/pack200-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/rmid.1$ext rmid.1$ext \\
   %{_mandir}/man1/rmid-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/rmiregistry.1$ext rmiregistry.1$ext \\
   %{_mandir}/man1/rmiregistry-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/servertool.1$ext servertool.1$ext \\
-  %{_mandir}/man1/servertool-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/tnameserv.1$ext tnameserv.1$ext \\
-  %{_mandir}/man1/tnameserv-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/unpack200.1$ext unpack200.1$ext \\
   %{_mandir}/man1/unpack200-%{uniquesuffix -- %{?1}}.1$ext
 
@@ -350,14 +357,16 @@ ext=.gz
 alternatives \\
   --install %{_bindir}/javac javac %{sdkbindir -- %{?1}}/javac $PRIORITY  --family %{name}.%{_arch} \\
   --slave %{_jvmdir}/java java_sdk %{_jvmdir}/%{sdkdir -- %{?1}} \\
-  --slave %{_bindir}/appletviewer appletviewer %{sdkbindir -- %{?1}}/appletviewer \\
 %ifarch %{aot_arches}
   --slave %{_bindir}/jaotc jaotc %{sdkbindir -- %{?1}}/jaotc \\
 %endif
   --slave %{_bindir}/jlink jlink %{sdkbindir -- %{?1}}/jlink \\
   --slave %{_bindir}/jmod jmod %{sdkbindir -- %{?1}}/jmod \\
+%ifarch %{jit_arches}
+%ifnarch s390x
   --slave %{_bindir}/jhsdb jhsdb %{sdkbindir -- %{?1}}/jhsdb \\
-  --slave %{_bindir}/idlj idlj %{sdkbindir -- %{?1}}/idlj \\
+%endif
+%endif
   --slave %{_bindir}/jar jar %{sdkbindir -- %{?1}}/jar \\
   --slave %{_bindir}/jarsigner jarsigner %{sdkbindir -- %{?1}}/jarsigner \\
   --slave %{_bindir}/javadoc javadoc %{sdkbindir -- %{?1}}/javadoc \\
@@ -377,15 +386,7 @@ alternatives \\
   --slave %{_bindir}/jstat jstat %{sdkbindir -- %{?1}}/jstat \\
   --slave %{_bindir}/jstatd jstatd %{sdkbindir -- %{?1}}/jstatd \\
   --slave %{_bindir}/rmic rmic %{sdkbindir -- %{?1}}/rmic \\
-  --slave %{_bindir}/schemagen schemagen %{sdkbindir -- %{?1}}/schemagen \\
   --slave %{_bindir}/serialver serialver %{sdkbindir -- %{?1}}/serialver \\
-  --slave %{_bindir}/wsgen wsgen %{sdkbindir -- %{?1}}/wsgen \\
-  --slave %{_bindir}/wsimport wsimport %{sdkbindir -- %{?1}}/wsimport \\
-  --slave %{_bindir}/xjc xjc %{sdkbindir -- %{?1}}/xjc \\
-  --slave %{_mandir}/man1/appletviewer.1$ext appletviewer.1$ext \\
-  %{_mandir}/man1/appletviewer-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/idlj.1$ext idlj.1$ext \\
-  %{_mandir}/man1/idlj-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/jar.1$ext jar.1$ext \\
   %{_mandir}/man1/jar-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/jarsigner.1$ext jarsigner.1$ext \\
@@ -420,16 +421,8 @@ alternatives \\
   %{_mandir}/man1/jstatd-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/rmic.1$ext rmic.1$ext \\
   %{_mandir}/man1/rmic-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/schemagen.1$ext schemagen.1$ext \\
-  %{_mandir}/man1/schemagen-%{uniquesuffix -- %{?1}}.1$ext \\
   --slave %{_mandir}/man1/serialver.1$ext serialver.1$ext \\
   %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/wsgen.1$ext wsgen.1$ext \\
-  %{_mandir}/man1/wsgen-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/wsimport.1$ext wsimport.1$ext \\
-  %{_mandir}/man1/wsimport-%{uniquesuffix -- %{?1}}.1$ext \\
-  --slave %{_mandir}/man1/xjc.1$ext xjc.1$ext \\
-  %{_mandir}/man1/xjc-%{uniquesuffix -- %{?1}}.1$ext
 
 for X in %{origin} %{javaver} ; do
   alternatives \\
@@ -501,7 +494,6 @@ exit 0
 
 %define files_jre() %{expand:
 %{_datadir}/icons/hicolor/*x*/apps/java-%{javaver}-%{origin}.png
-%{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjsoundalsa.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsplashscreen.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libawt_xawt.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjawt.so
@@ -519,15 +511,14 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/java
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jjs
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/keytool
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/orbd
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/pack200
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/rmid
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/rmiregistry
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/servertool
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/tnameserv
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/unpack200
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/lib
+%ifarch %{jit_arches}
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/classlist
+%endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jexec
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jrt-fs.jar
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/modules
@@ -548,7 +539,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libj2gss.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libj2pcsc.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libj2pkcs11.so
-%{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjaas_unix.so
+%{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjaas.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjava.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjavajpeg.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libjdwp.so
@@ -563,21 +554,26 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libnio.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libprefs.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/librmi.so
+# Zero and S390x don't have SA
+%ifarch %{jit_arches}
+%ifnarch s390x
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsaproc.so
+%endif
+%endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsctp.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libsunec.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libunpack.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libverify.so
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/libzip.so
+%dir %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr
+%{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr/default.jfc
+%{_jvmdir}/%{sdkdir -- %{?1}}/lib/jfr/profile.jfc
 %{_mandir}/man1/java-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/jjs-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/keytool-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/orbd-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/pack200-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/rmid-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/rmiregistry-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/servertool-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/tnameserv-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/unpack200-%{uniquesuffix -- %{?1}}.1*
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/server/
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/client/
@@ -600,6 +596,7 @@ exit 0
 %dir %{etcjavadir -- %{?1}}/conf/security/policy/unlimited
 %config(noreplace) %{etcjavadir -- %{?1}}/lib/security/default.policy
 %config(noreplace) %{etcjavadir -- %{?1}}/lib/security/blacklisted.certs
+%config(noreplace) %{etcjavadir -- %{?1}}/lib/security/public_suffix_list.dat
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/policy/limited/exempt_local.policy
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/policy/limited/default_local.policy
 %config(noreplace) %{etcjavadir -- %{?1}}/conf/security/policy/limited/default_US_export.policy
@@ -622,8 +619,6 @@ exit 0
 
 %define files_devel() %{expand:
 %dir %{_jvmdir}/%{sdkdir -- %{?1}}/bin
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/appletviewer
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/idlj
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jar
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jarsigner
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/javac
@@ -635,7 +630,12 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jdeps
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jdeprscan
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jimage
+# Zero and S390x don't have SA
+%ifarch %{jit_arches}
+%ifnarch s390x
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jhsdb
+%endif
+%endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jinfo
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jlink
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jmap
@@ -647,11 +647,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jstat
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jstatd
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/rmic
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/schemagen
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/serialver
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/wsgen
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/wsimport
-%{_jvmdir}/%{sdkdir -- %{?1}}/bin/xjc
 %ifarch %{aot_arches}
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jaotc
 %endif
@@ -661,8 +657,6 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/tapset
 %endif
 %{_datadir}/applications/*jconsole%{?1}.desktop
-%{_mandir}/man1/appletviewer-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/idlj-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/jar-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/jarsigner-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/javac-%{uniquesuffix -- %{?1}}.1*
@@ -680,11 +674,7 @@ exit 0
 %{_mandir}/man1/jstat-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/jstatd-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/rmic-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/schemagen-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/wsgen-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/wsimport-%{uniquesuffix -- %{?1}}.1*
-%{_mandir}/man1/xjc-%{uniquesuffix -- %{?1}}.1*
 %if %{with_systemtap}
 %dir %{tapsetroot}
 %dir %{tapsetdirttapset}
@@ -861,7 +851,7 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 8%{?dist}
+Release: 4%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -878,21 +868,25 @@ Group:   Development/Languages
 
 # HotSpot code is licensed under GPLv2
 # JDK library code is licensed under GPLv2 with the Classpath exception
-# The Apache license is used in code taken from Apache projects (primarily JAXP & JAXWS)
+# The Apache license is used in code taken from Apache projects (primarily xalan & xerces)
 # DOM levels 2 & 3 and the XML digital signature schemas are licensed under the W3C Software License
 # The JSR166 concurrency code is in the public domain
-# The BSD and MIT licenses are used for a number of third-party libraries (see THIRD_PARTY_README)
-# The OpenJDK source tree includes the JPEG library (IJG), zlib & libpng (zlib), giflib and LCMS (MIT)
+# The BSD and MIT licenses are used for a number of third-party libraries (see ADDITIONAL_LICENSE_INFO)
+# The OpenJDK source tree includes:
+# - JPEG library (IJG), zlib & libpng (zlib), giflib (MIT), harfbuzz (ISC),
+# - freetype (FTL), jline (BSD) and LCMS (MIT)
+# - jquery (MIT), jdk.crypto.cryptoki PKCS 11 wrapper (RSA)
+# - public_suffix_list.dat from publicsuffix.org (MPLv2.0)
 # The test code includes copies of NSS under the Mozilla Public License v2.0
 # The PCSClite headers are under a BSD with advertising license
 # The elliptic curve cryptography (ECC) source code is licensed under the LGPLv2.1 or any later version
-License:  ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib
+License:  ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib and ISC and FTL and RSA
 URL:      http://openjdk.java.net/
 
 
 # to regenerate source0 (jdk) and source8 (jdk's taspets) run update_package.sh
 # update_package.sh contains hard-coded repos, revisions, tags, and projects to regenerate the source archives
-Source0: jdk-updates-jdk%{majorver}u-jdk-%{newjavaver}+%{buildver}.tar.xz
+Source0: shenandoah-jdk%{majorver}-shenandoah-jdk-%{newjavaver}+%{buildver}.tar.xz
 Source8: systemtap_3.2_tapsets_hg-icedtea8-9d464368e06d.tar.xz
 
 # Desktop files. Adapted from IcedTea
@@ -936,14 +930,33 @@ Patch5:    RHBZ-1565658-system-nss-SunEC.patch
 #
 #############################################
 
-# s390 (Zero) build does not bootcycle without this patch
-# Already in JDK-11. Missing backports.
-Patch100:  JDK-8201495-s390-java-opts.patch
-# See JDK-8198844. This won't be needed any more in
-# JDK 11+
-Patch101:  sorted-diff.patch
-# Type fixing for s390 (Zero). Not upstream.
-Patch102:  java-openjdk-s390-size_t.patch
+# 8210416, RHBZ#1632174: [linux] Poor StrictMath performance due to non-optimized compilation
+Patch8:    JDK-8210416-RHBZ-1632174-fdlibm-opt-fix.patch
+# 8210425, RHBZ#1632174: [x86] sharedRuntimeTrig/sharedRuntimeTrans compiled without optimization
+Patch9:    JDK-8210425-RHBZ-1632174-sharedRuntimeTrig-opt-fix.patch
+
+#############################################
+#
+# JDK 9+ only patches
+#
+#############################################
+
+# 8210647, RHBZ#1632174: libsaproc is being compiled without optimization
+Patch10:    JDK-8210647-RHBZ-1632174-libsaproc-opt-fix.patch
+# 8210761, RHBZ#1632174: libjsig is being compiled without optimization
+Patch11:    JDK-8210761-RHBZ-1632174-libjsig-opt-fix.patch
+# 8210703, RHBZ#1632174: vmStructs.cpp compiled with -O0
+Patch12:    JDK-8210703-RHBZ-1632174-vmStructs-opt-fix.patch
+# 8211105, RHBZ-1628612, RHBZ-1630996: Temporarily disable dsin/dcos/log
+# intrinsics on aarch64, falling back to C code. Re-enable once JDK-8210461
+# is fixed and available in jdk11u.
+Patch6:    JDK-8211105-aarch64-log-sin-intrinsics-disable.patch
+#############################################
+#
+# Patches appearing in 11.0.2
+#
+#############################################
+Patch584: jdk8209639-rh1640127-coalesce_attempted_spill_non_spillable_02.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
@@ -1207,10 +1220,13 @@ pushd %{top_level_dir_name}
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-
-%patch101 -p1
-%patch102 -p1
-
+%patch6 -p1
+%patch8 -p1
+%patch9 -p1
+%patch10 -p1
+%patch11 -p1
+%patch12 -p1
+%patch584 -p1
 popd # openjdk
 
 %patch1000
@@ -1288,10 +1304,6 @@ EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 %endif
 export EXTRA_CFLAGS
 
-(cd %{top_level_dir_name}/make/autoconf
- bash ./autogen.sh
-)
-
 for suffix in %{build_loop} ; do
 if [ "x$suffix" = "x" ] ; then
   debugbuild=release
@@ -1315,8 +1327,9 @@ bash ../configure \
 %endif
     --with-version-build=%{buildver} \
     --with-version-pre="" \
-    --with-version-opt="" \
-    --with-boot-jdk=/usr/lib/jvm/java-%{majorver}-openjdk \
+    --with-version-opt=%{lts_designator} \
+    --with-vendor-version-string="%{vendor_version_string}" \
+    --with-boot-jdk=/usr/lib/jvm/java-11-openjdk \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
     --enable-unlimited-crypto \
@@ -1332,6 +1345,9 @@ bash ../configure \
     --with-extra-ldflags="%{ourldflags}" \
     --with-num-cores="$NUM_PROC" \
     --disable-javac-server \
+%ifarch x86_64
+    --with-jvm-features=zgc \
+%endif
     --disable-warnings-as-errors
 
 make \
@@ -1347,10 +1363,6 @@ make docs-zip
 # this is a regression in OpenJDK 7 (our compiler):
 # http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=1437
 find images/%{jdkimage} -iname '*.jar' -exec chmod ugo+r {} \;
-
-# remove redundant *diz and *debuginfo files
-find images/%{jdkimage} -iname '*.diz' -exec rm {} \;
-find images/%{jdkimage} -iname '*.debuginfo' -exec rm {} \;
 
 # Build screws up permissions on binaries
 # https://bugs.openjdk.java.net/browse/JDK-8173610
@@ -1378,6 +1390,11 @@ done
 for suffix in %{rev_build_loop} ; do
 
 export JAVA_HOME=$(pwd)/%{buildoutputdir -- $suffix}/images/%{jdkimage}
+
+#check sheandoah is enabled
+%if %{use_shenandoah_hotspot}
+$JAVA_HOME//bin/java -XX:+UseShenandoahGC -version
+%endif
 
 # Check unlimited policy has been used
 $JAVA_HOME/bin/javac -d . %{SOURCE13}
@@ -1530,7 +1547,7 @@ popd
 # Install Javadoc documentation
 install -d -m 755 $RPM_BUILD_ROOT%{_javadocdir}
 cp -a %{buildoutputdir -- $suffix}/images/docs $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}
-cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}+%{buildver}-docs.zip  $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
+cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}+%{buildver}%{lts_designator_zip}-docs.zip $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
 
 # Install icons and menu entries
 for s in 16 24 32 48 ; do
@@ -1549,9 +1566,6 @@ done
 # Install /etc/.java/.systemPrefs/ directory
 # See https://bugzilla.redhat.com/show_bug.cgi?id=741821
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/.java/.systemPrefs
-
-# FIXME: remove SONAME entries from demo DSOs. See
-# https://bugzilla.redhat.com/show_bug.cgi?id=436497
 
 # copy samples next to demos; samples are mostly js files
 cp -r %{top_level_dir_name}/src/sample  $RPM_BUILD_ROOT/%{_jvmdir}/%{sdkdir -- $suffix}/
@@ -1763,6 +1777,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Thu Nov 01 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-3
+- updated to jdk11
+
 * Wed Aug 29 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.3.13-8
 - Adjust system NSS patch, RHBZ-1565658-system-nss-SunEC.patch, so
   as to account for -Wl,--as-needed default linker flag by filtering

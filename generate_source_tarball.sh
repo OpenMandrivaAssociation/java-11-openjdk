@@ -1,5 +1,5 @@
 #!/bin/bash
-# Generates the 'source tarball' for JDK 8 projects.
+# Generates the 'source tarball' for JDK projects.
 #
 # Example:
 # When used from local repo set REPO_ROOT pointing to file:// with your repo
@@ -123,7 +123,7 @@ pushd "${FILE_NAME_ROOT}"
                 # get pr2126.patch (from http://icedtea.classpath.org/hg/icedtea?cmd=changeset;node=8d2c9a898f50) from most correct tag
                 # Do not push it or publish it (see http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=2126)
                 # there is currnetly no "upstram version of this patch, hardcoding custom version
-                PR2126="../../pr2126-10.patch"
+                PR2126="../../pr2126-11.patch"
             fi;
             echo "Applying ${PR2126}"
             patch -Np1 < $PR2126
