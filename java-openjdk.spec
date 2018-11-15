@@ -725,13 +725,13 @@ Recommends: gtk3%{?_isa}
 Provides: java-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 
 # Standard JPackage base provides
-Provides: jre = %{javaver}%{?1}
-Provides: jre-%{origin}%{?1} = %{epoch}:%{version}-%{release}
+#Provides: jre = %{javaver}%{?1}
+#Provides: jre-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: jre-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
 Provides: jre-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java%{?1} = %{epoch}:%{javaver}
+#Provides: java-%{origin}%{?1} = %{epoch}:%{version}-%{release}
+#Provides: java%{?1} = %{epoch}:%{javaver}
 }
 
 %define java_headless_rpo() %{expand:
@@ -765,14 +765,14 @@ Requires(postun):   chkconfig >= 1.7
 Suggests: lksctp-tools%{?_isa}, pcsc-lite-devel%{?_isa}
 
 # Standard JPackage base provides
-Provides: jre-headless%{?1} = %{epoch}:%{javaver}
+#Provides: jre-headless%{?1} = %{epoch}:%{javaver}
 Provides: jre-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
+#Provides: jre-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: jre-%{javaver}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
 Provides: java-%{javaver}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-headless%{?1} = %{epoch}:%{javaver}
+#Provides: java-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
+#Provides: java-headless%{?1} = %{epoch}:%{javaver}
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1312019
 Provides: /usr/bin/jjs
