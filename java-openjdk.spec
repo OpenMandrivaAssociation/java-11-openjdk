@@ -857,7 +857,10 @@ Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
 
 Name:    java-%{origin}
 Version: %{newjavaver}.%{buildver}
-Release: 7%{?dist}
+# This package needs `.rolling` as part of Release so as to not conflict on install with
+# java-X-openjdk. I.e. when latest rolling release is also an LTS release packaged as
+# java-X-openjdk. See: https://bugzilla.redhat.com/show_bug.cgi?id=1647298
+Release: 8.rolling%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1794,6 +1797,9 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Fri Nov 30 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-8
+- added rolling suffix to release (before dist) to prevent conflict with java-11-openjdk which now have same major version
+
 * Mon Nov 12 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-6
 - fixed tck failures of arraycopy and process exec with shenandoah on
 - added patch585 rh1648995-shenandoah_array_copy_broken_by_not_always_copy_forward_for_disjoint_arrays.patch
