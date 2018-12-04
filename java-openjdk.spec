@@ -21,6 +21,11 @@
 # Enable release builds by default on relevant arches.
 %bcond_without release
 
+# The -g flag says to use strip -g instead of full strip on DSOs or EXEs.
+# This fixes detailed NMT and other tools which need minimal debug info.
+# See: https://bugzilla.redhat.com/show_bug.cgi?id=1520879
+%global _find_debuginfo_opts -g
+
 # note: parametrized macros are order-sensitive (unlike not-parametrized) even with normal macros
 # also necessary when passing it as parameter to other macros. If not macro, then it is considered a switch
 # see the difference between global and define:
@@ -860,7 +865,7 @@ Version: %{newjavaver}.%{buildver}
 # This package needs `.rolling` as part of Release so as to not conflict on install with
 # java-X-openjdk. I.e. when latest rolling release is also an LTS release packaged as
 # java-X-openjdk. See: https://bugzilla.redhat.com/show_bug.cgi?id=1647298
-Release: 8.rolling%{?dist}
+Release: 9.rolling%{?dist}
 # java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
 # and this change was brought into RHEL-4. java-1.5.0-ibm packages
 # also included the epoch in their virtual provides. This created a
@@ -1797,6 +1802,10 @@ require "copy_jdk_configs.lua"
 
 
 %changelog
+* Tue Dec 04 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.1.13-9
+- Added %%global _find_debuginfo_opts -g
+- Resolves: RHBZ#1520879 (Detailed NMT issue)
+
 * Fri Nov 30 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-8
 - added rolling suffix to release (before dist) to prevent conflict with java-11-openjdk which now have same major version
 
