@@ -1037,6 +1037,9 @@ BuildRequires: pkgconfig(freetype2)
 BuildRequires: giflib-devel
 BuildRequires: gcc-c++
 BuildRequires: pkgconfig(gtk+-2.0)
+BuildRequires: pkgconfig(nss)
+# For freebl
+BuildRequires: nss-static-devel
 BuildRequires: pkgconfig(lcms2)
 BuildRequires: pkgconfig(libjpeg)
 BuildRequires: pkgconfig(libpng)
