@@ -31,10 +31,12 @@ else
   echo ${TAPSET}
 fi
 
-# OpenJDK from Shenandoah project
+
+# OpenJDK from jdk10 updates project
 export PROJECT_NAME="shenandoah"
 export REPO_NAME="jdk11"
 # warning, clonning without shenadnaoh suffix, you will clone pure jdk - thus without shenandaoh GC
+# For latest tag, see http://hg.openjdk.java.net/shenandoah/jdk11/tags
 export VERSION="shenandoah-jdk-11.0.1+13"
 export COMPRESSION=xz
 # unset tapsets overrides

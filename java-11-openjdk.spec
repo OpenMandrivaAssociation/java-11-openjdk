@@ -1,23 +1,7 @@
-# RPM conditionals so as to be able to dynamically produce
-# slowdebug/release builds. See:
-# http://rpm.org/user_doc/conditional_builds.html
-#
-# Examples:
-#
-# Produce release *and* slowdebug builds on x86_64 (default):
-# $ rpmbuild -ba java-1.8.0-openjdk.spec
-#
-# Produce only release builds (no slowdebug builds) on x86_64:
-# $ rpmbuild -ba java-1.8.0-openjdk.spec --without slowdebug
-#
-# Only produce a release build on x86_64:
-# $ fedpkg mockbuild --without slowdebug
-#
-# Only produce a debug build on x86_64:
-# $ fedpkg local --without release
-#
-# Enable slowdebug builds by default on relevant arches.
-%bcond_without slowdebug
+%global _disable_ld_no_undefined 1
+
+# We don't usually need slowdebug builds
+%bcond_with slowdebug
 # Enable release builds by default on relevant arches.
 %bcond_without release
 
@@ -70,15 +54,14 @@
 
 # while JDK is a techpreview(is_system_jdk=0), some provides are turned off. Once jdk stops to be an techpreview, move it to 1
 # as sytem JDK, we mean any JDK which can run whole system java stack without issues (like bytecode issues, module issues, dependencies...)
-%global is_system_jdk 0
+%global is_system_jdk 1
 
-%global aarch64         aarch64 arm64 armv8
 # we need to distinguish between big and little endian PPC64
 %global ppc64le         ppc64le
 %global ppc64be         ppc64 ppc64p7
-%global multilib_arches %{power64} sparc64 x86_64
-%global jit_arches      %{ix86} x86_64 sparcv9 sparc64 %{aarch64} %{power64} %{arm} s390x
-%global aot_arches      x86_64 %{aarch64}
+%global multilib_arches %{power64} sparc64 %{x86_64}
+%global jit_arches      %{ix86} %{x86_64} sparcv9 sparc64 %{aarch64} %{power64} %{arm} s390x
+%global aot_arches      %{x86_64} %{aarch64}
 
 # By default, we build a debug build during main build on JIT architectures
 %if %{with slowdebug}
@@ -96,7 +79,7 @@
 %endif
 
 # On x86_64 and AArch64, we use the Shenandoah HotSpot
-%ifarch x86_64 %{aarch64}
+%ifarch %{x86_64} %{aarch64}
 %global use_shenandoah_hotspot 1
 %else
 %global use_shenandoah_hotspot 0
@@ -132,9 +115,9 @@
 # We filter out -Wall which will otherwise cause HotSpot to produce hundreds of thousands of warnings (100+mb logs)
 # We replace it with -Wformat (required by -Werror=format-security) and -Wno-cpp to avoid FORTIFY_SOURCE warnings
 # We filter out -fexceptions as the HotSpot build explicitly does -fno-exceptions and it's otherwise the default for C++
-%global ourflags %(echo %optflags | sed -e 's|-Wall|-Wformat -Wno-cpp|' | sed -r -e 's|-O[0-9]*||')
+%global ourflags %(echo %optflags | sed -e 's|-Wall|-Wformat -Wno-cpp|' | sed -r -e 's|-O[0-9sz]*||')
 %global ourcppflags %(echo %ourflags | sed -e 's|-fexceptions||')
-%global ourldflags %{__global_ldflags}
+%global ourldflags %{ldflags}
 
 # With disabled nss is NSS deactivated, so NSS_LIBDIR can contain the wrong path
 # the initialization must be here. Later the pkg-config have buggy behavior
@@ -154,7 +137,7 @@
 # not match _arch.
 # Also, in some cases, the machine name used by SystemTap
 # does not match that given by _build_cpu
-%ifarch x86_64
+%ifarch %{x86_64}
 %global archinstall amd64
 %endif
 %ifarch ppc
@@ -210,20 +193,10 @@
 # buildjdkver is usually same as %%{majorver},
 # but in time of bootstrap of next jdk, it is majorver-1, 
 # and this it is better to change it here, on single place
-%global buildjdkver %{majorver}
+%global buildjdkver 9
 # Used via new version scheme. JDK 11 was
 # GA'ed in September 2018 => 18.9
 %global vendor_version_string 18.9
-# Add LTS designator for RHEL builds
-%if 0%{?rhel}
-  # the rolling release isneverpacked for rhel,
-  # nro even in epel, will this LTS be used
-  %global lts_designator "LTS"
-  %global lts_designator_zip -%{lts_designator}
-%else
-  %global lts_designator ""
-  %global lts_designator_zip ""
-%endif
 
 # Standard JPackage naming and versioning defines
 %global origin          openjdk
@@ -731,9 +704,6 @@ exit 0
 %{_mandir}/man1/rmic-%{uniquesuffix -- %{?1}}.1*
 %{_mandir}/man1/serialver-%{uniquesuffix -- %{?1}}.1*
 %if %{with_systemtap}
-%dir %{tapsetroot}
-%dir %{tapsetdirttapset}
-%dir %{tapsetdir}
 %{tapsetdir}/*%{_arch}%{?1}.stp
 %endif
 %if %is_system_jdk
@@ -809,46 +779,34 @@ exit 0
 # not-duplicated requires/provides/obsoletes for normal/debug packages
 %define java_rpo() %{expand:
 Requires: fontconfig%{?_isa}
-Requires: xorg-x11-fonts-Type1
+Requires: x11-font-type1
 # Requires rest of java
-Requires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
-OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
-# for java-X-openjdk package's desktop binding
-Recommends: gtk3%{?_isa}
+Requires: %{name}-headless%{?1}%{?_isa} = %{EVRD}
+OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{EVRD}
 
-Provides: java-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-%{origin}%{?1} = %{EVRD}
 
 # Standard JPackage base provides
-Provides: jre-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
+Provides: jre-%{javaver}%{?1} = %{EVRD}
+Provides: jre-%{javaver}-%{origin}%{?1} = %{EVRD}
+Provides: java-%{javaver}%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{origin}%{?1} = %{EVRD}
+Provides: jre-%{origin}%{?1} = %{EVRD}
+Provides: java%{?1} = %{EVRD}
+Provides: jre%{?1} = %{EVRD}
 %endif
 }
 
 %define java_headless_rpo() %{expand:
 # Require /etc/pki/java/cacerts
 Requires: ca-certificates
-# Require javapackages-filesystem for ownership of /usr/lib/jvm/ and macros
-Requires: javapackages-filesystem
 # Require zone-info data provided by tzdata-java sub-package
 Requires: tzdata-java >= 2015d
 # libsctp.so.1 is being `dlopen`ed on demand
-Requires: lksctp-tools%{?_isa}
+Requires: %{_lib}sctp1
 # there is a need to depend on the exact version of NSS
 Requires: nss%{?_isa} %{NSS_BUILDTIME_VERSION}
-Requires: nss-softokn%{?_isa} %{NSSSOFTOKN_BUILDTIME_VERSION}
-# tool to copy jdk's configs - should be Recommends only, but then only dnf/yum enforce it,
-# not rpm transaction and so no configs are persisted when pure rpm -u is run. It may be
-# considered as regression
-Requires: copy-jdk-configs >= 3.3
-OrderWithRequires: copy-jdk-configs
-# for printing support
-Requires: cups-libs
 # Post requires alternatives to install tool alternatives
 Requires(post):   %{_sbindir}/alternatives
 # in version 1.7 and higher for --family switch
@@ -857,26 +815,24 @@ Requires(post):   chkconfig >= 1.7
 Requires(postun): %{_sbindir}/alternatives
 # in version 1.7 and higher for --family switch
 Requires(postun):   chkconfig >= 1.7
-# for optional support of kernel stream control, card reader and printing bindings
-Suggests: lksctp-tools%{?_isa}, pcsc-lite-devel%{?_isa}
 
 # Standard JPackage base provides
-Provides: jre-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-%{javaver}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-headless%{?1} = %{epoch}:%{version}-%{release}
+Provides: jre-%{javaver}-%{origin}-headless%{?1} = %{EVRD}
+Provides: jre-%{javaver}-headless%{?1} = %{EVRD}
+Provides: java-%{javaver}-%{origin}-headless%{?1} = %{EVRD}
+Provides: java-%{javaver}-headless%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-%{origin}-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: jre-headless%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-headless%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{origin}-headless%{?1} = %{EVRD}
+Provides: jre-%{origin}-headless%{?1} = %{EVRD}
+Provides: jre-headless%{?1} = %{EVRD}
+Provides: java-headless%{?1} = %{EVRD}
 %endif
 }
 
 %define java_devel_rpo() %{expand:
 # Requires base package
-Requires:         %{name}%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
-OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
+Requires:         %{name}%{?1}%{?_isa} = %{EVRD}
+OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{EVRD}
 # Post requires alternatives to install tool alternatives
 Requires(post):   %{_sbindir}/alternatives
 # in version 1.7 and higher for --family switch
@@ -887,44 +843,44 @@ Requires(postun): %{_sbindir}/alternatives
 Requires(postun):   chkconfig >= 1.7
 
 # Standard JPackage devel provides
-Provides: java-sdk-%{javaver}-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-sdk-%{javaver}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-devel%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-devel%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-sdk-%{javaver}-%{origin}%{?1} = %{EVRD}
+Provides: java-sdk-%{javaver}%{?1} = %{EVRD}
+Provides: java-%{javaver}-devel%{?1} = %{EVRD}
+Provides: java-%{javaver}-%{origin}-devel%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-devel-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-sdk-%{origin}%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-devel%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-sdk%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-devel-%{origin}%{?1} = %{EVRD}
+Provides: java-sdk-%{origin}%{?1} = %{EVRD}
+Provides: java-devel%{?1} = %{EVRD}
+Provides: java-sdk%{?1} = %{EVRD}
 %endif
 }
 
 %define java_jmods_rpo() %{expand:
 # Requires devel package
 # as jmods are bytecode, they should be OK without any _isa
-Requires:         %{name}-devel%{?1} = %{epoch}:%{version}-%{release}
-OrderWithRequires: %{name}-headless%{?1} = %{epoch}:%{version}-%{release}
+Requires:         %{name}-devel%{?1} = %{EVRD}
+OrderWithRequires: %{name}-headless%{?1} = %{EVRD}
 
-Provides: java-%{javaver}-jmods%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-jmods%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-jmods%{?1} = %{EVRD}
+Provides: java-%{javaver}-%{origin}-jmods%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-jmods%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-jmods%{?1} = %{EVRD}
 %endif
 }
 
 %define java_demo_rpo() %{expand:
-Requires: %{name}%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
-OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
+Requires: %{name}%{?1}%{?_isa} = %{EVRD}
+OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{EVRD}
 
-Provides: java-%{javaver}-demo%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-demo%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-demo%{?1} = %{EVRD}
+Provides: java-%{javaver}-%{origin}-demo%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-demo%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-demo%{?1} = %{EVRD}
 %endif
 }
 
 %define java_javadoc_rpo() %{expand:
-OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
+OrderWithRequires: %{name}-headless%{?1}%{?_isa} = %{EVRD}
 # Post requires alternatives to install javadoc alternative
 Requires(post):   %{_sbindir}/alternatives
 # in version 1.7 and higher for --family switch
@@ -935,44 +891,34 @@ Requires(postun): %{_sbindir}/alternatives
 Requires(postun):   chkconfig >= 1.7
 
 # Standard JPackage javadoc provides
-Provides: java-%{javaver}-javadoc%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-javadoc%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-javadoc%{?1} = %{EVRD}
+Provides: java-%{javaver}-%{origin}-javadoc%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-javadoc%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-javadoc%{?1} = %{EVRD}
 %endif
 }
 
 %define java_src_rpo() %{expand:
-Requires: %{name}-headless%{?1}%{?_isa} = %{epoch}:%{version}-%{release}
+Requires: %{name}-headless%{?1}%{?_isa} = %{EVRD}
 
 # Standard JPackage sources provides
-Provides: java-%{javaver}-src%{?1} = %{epoch}:%{version}-%{release}
-Provides: java-%{javaver}-%{origin}-src%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-%{javaver}-src%{?1} = %{EVRD}
+Provides: java-%{javaver}-%{origin}-src%{?1} = %{EVRD}
 %if %is_system_jdk
-Provides: java-src%{?1} = %{epoch}:%{version}-%{release}
+Provides: java-src%{?1} = %{EVRD}
 %endif
 }
 
 # Prevent brp-java-repack-jars from being run
 %global __jar_repack 0
 
-Name:    java-%{origin}
+Name:    java-%{majorver}-%{origin}
 Version: %{newjavaver}.%{buildver}
 # This package needs `.rolling` as part of Release so as to not conflict on install with
 # java-X-openjdk. I.e. when latest rolling release is also an LTS release packaged as
 # java-X-openjdk. See: https://bugzilla.redhat.com/show_bug.cgi?id=1647298
-Release: 11.rolling%{?dist}
-# java-1.5.0-ibm from jpackage.org set Epoch to 1 for unknown reasons
-# and this change was brought into RHEL-4. java-1.5.0-ibm packages
-# also included the epoch in their virtual provides. This created a
-# situation where in-the-wild java-1.5.0-ibm packages provided "java =
-# 1:1.5.0". In RPM terms, "1.6.0 < 1:1.5.0" since 1.6.0 is
-# interpreted as 0:1.6.0. So the "java >= 1.6.0" requirement would be
-# satisfied by the 1:1.5.0 packages. Thus we need to set the epoch in
-# JDK package >= 1.6.0 to 1, and packages referring to JDK virtual
-# provides >= 1.6.0 must specify the epoch, "java >= 1:1.6.0".
+Release: 1
 
-Epoch:   1
 Summary: %{origin_nice} Runtime Environment %{majorver}
 Group:   Development/Languages
 
@@ -1033,6 +979,8 @@ Patch3:    rh649512-remove_uses_of_far_in_jpeg_libjpeg_turbo_1_4_compat_for_jdk1
 Patch4:    pr3183-rh1340845-support_fedora_rhel_system_crypto_policy.patch
 # System NSS via SunEC Provider
 Patch5:    pr1983-rh1565658-support_using_the_system_installation_of_nss_with_the_sunec_provider_jdk11.patch
+# Make it build
+Patch13:    java-11-buildfix.patch
 
 #############################################
 #
@@ -1080,46 +1028,44 @@ Patch584: jdk8209639-rh1640127-02-coalesce_attempted_spill_non_spillable.patch
 
 BuildRequires: autoconf
 BuildRequires: automake
-BuildRequires: alsa-lib-devel
+BuildRequires: pkgconfig(alsa)
 BuildRequires: binutils
 BuildRequires: cups-devel
 BuildRequires: desktop-file-utils
-# elfutils only are OK for build without AOT
-BuildRequires: elfutils-devel
 BuildRequires: fontconfig
-BuildRequires: freetype-devel
+BuildRequires: pkgconfig(freetype2)
 BuildRequires: giflib-devel
 BuildRequires: gcc-c++
-BuildRequires: gdb
-BuildRequires: gtk3-devel
-BuildRequires: lcms2-devel
-BuildRequires: libjpeg-devel
-BuildRequires: libpng-devel
-BuildRequires: libxslt
-BuildRequires: libX11-devel
-BuildRequires: libXi-devel
-BuildRequires: libXinerama-devel
-BuildRequires: libXt-devel
-BuildRequires: libXtst-devel
-# Requirements for setting up the nss.cfg
-BuildRequires: nss-devel
+BuildRequires: pkgconfig(gtk+-2.0)
+BuildRequires: pkgconfig(lcms2)
+BuildRequires: pkgconfig(libjpeg)
+BuildRequires: pkgconfig(libpng)
+BuildRequires: xsltproc
+BuildRequires: pkgconfig(x11)
+BuildRequires: pkgconfig(xi)
+BuildRequires: pkgconfig(xcomposite)
+BuildRequires: pkgconfig(xinerama)
+BuildRequires: pkgconfig(xt)
+BuildRequires: pkgconfig(xtst)
 BuildRequires: pkgconfig
-BuildRequires: xorg-x11-proto-devel
+BuildRequires: pkgconfig(xproto)
 BuildRequires: zip
-BuildRequires: javapackages-filesystem
-BuildRequires: java-%{buildjdkver}-openjdk-devel
-# Zero-assembler build requirement
+# OpenJDK X officially requires OpenJDK (X-1) to build
+BuildRequires: java-10-openjdk-devel
+# Zero-assembler build requirement.
 %ifnarch %{jit_arches}
-BuildRequires: libffi-devel
+BuildRequires: pkgconfig(libffi)
 %endif
-BuildRequires: tzdata-java >= 2015d
-# Earlier versions have a bug in tree vectorization on PPC
-BuildRequires: gcc >= 4.8.3-8
-# Build requirements for SunEC system NSS support
-BuildRequires: nss-softokn-freebl-devel >= 3.16.1
 
+# cacerts build requirement.
+BuildRequires: openssl
+# execstack build requirement.
+# no prelink on ARM yet
+%ifnarch %{arm} %{aarch64} ppc64le
+BuildRequires: prelink
+%endif
 %if %{with_systemtap}
-BuildRequires: systemtap-sdt-devel
+BuildRequires: systemtap
 %endif
 
 # this is always built, also during debug-only build
@@ -1260,7 +1206,6 @@ The java-%{origin}-src-slowdebug sub-package contains the complete %{origin_nice
 %package javadoc
 Summary: %{origin_nice} %{majorver} API documentation
 Group:   Documentation
-Requires: javapackages-filesystem
 
 %{java_javadoc_rpo %{nil}}
 
@@ -1272,7 +1217,6 @@ The %{origin_nice} %{majorver} API documentation.
 %package javadoc-zip
 Summary: %{origin_nice} %{majorver} API documentation compressed in single archive
 Group:   Documentation
-Requires: javapackages-filesystem
 
 %{java_javadoc_rpo %{nil}}
 
@@ -1284,7 +1228,6 @@ The %{origin_nice} %{majorver} API documentation compressed in single archive.
 %package javadoc-slowdebug
 Summary: %{origin_nice} %{majorver} API documentation %{for_debug}
 Group:   Documentation
-Requires: javapackages-filesystem
 
 %{java_javadoc_rpo -- %{debug_suffix_unquoted}}
 
@@ -1296,7 +1239,6 @@ The %{origin_nice} %{majorver} API documentation %{for_debug}.
 %package javadoc-zip-slowdebug
 Summary: %{origin_nice} %{majorver} API documentation compressed in single archive %{for_debug}
 Group:   Documentation
-Requires: javapackages-filesystem
 
 %{java_javadoc_rpo -- %{debug_suffix_unquoted}}
 
@@ -1332,8 +1274,6 @@ fi
 
 # OpenJDK patches
 
-# Remove libraries that are linked
-sh %{SOURCE12}
 pushd %{top_level_dir_name}
 %patch1 -p1
 %patch2 -p1
@@ -1346,6 +1286,7 @@ pushd %{top_level_dir_name}
 %patch10 -p1
 %patch11 -p1
 %patch12 -p1
+%patch13 -p1
 %patch584 -p1
 %patch585 -p1
 popd # openjdk
@@ -1354,7 +1295,7 @@ popd # openjdk
 
 # Extract systemtap tapsets
 %if %{with_systemtap}
-tar --strip-components=1 -x -I xz -f %{SOURCE8}
+tar x --strip-components=1 -f %{SOURCE8}
 %if %{include_debug_build}
 cp -r tapset tapset%{debug_suffix}
 %endif
@@ -1446,11 +1387,11 @@ bash ../configure \
 %ifarch %{ppc64le}
     --with-jobs=1 \
 %endif
+    --with-boot-jdk=$(ls -d /usr/lib/jvm/java-10-openjdk-* |head -n1) \
     --with-version-build=%{buildver} \
     --with-version-pre="" \
-    --with-version-opt=%{lts_designator} \
+    --with-version-opt="" \
     --with-vendor-version-string="%{vendor_version_string}" \
-    --with-boot-jdk=/usr/lib/jvm/java-%{buildjdkver}-openjdk \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
     --enable-unlimited-crypto \
@@ -1466,19 +1407,27 @@ bash ../configure \
     --with-extra-ldflags="%{ourldflags}" \
     --with-num-cores="$NUM_PROC" \
     --disable-javac-server \
-%ifarch x86_64
+%ifarch %{x86_64}
     --with-jvm-features=zgc \
 %endif
     --disable-warnings-as-errors
 
+# With LTO enabled, /tmp runs out of space.
+# Temporary LTO files for openjdk 11 easily take 50 GB.
+mkdir -p compilertemp
+export TMPDIR="$(pwd)/compilertemp"
+
 make \
+    JOBS=$(getconf _NPROCESSORS_ONLN) \
     JAVAC_FLAGS=-g \
     LOG=trace \
     WARNINGS_ARE_ERRORS="-Wno-error" \
     CFLAGS_WARNINGS_ARE_ERRORS="-Wno-error" \
     %{targets} || ( pwd; find $top_dir_abs_path -name "hs_err_pid*.log" | xargs cat && false )
 
-make docs-zip
+make \
+    JOBS=$(getconf _NPROCESSORS_ONLN) \
+    docs-zip
 
 # the build (erroneously) removes read permissions from some jars
 # this is a regression in OpenJDK 7 (our compiler):
@@ -1538,6 +1487,8 @@ do
     eu-readelf -S "$lib" | grep "] .debug_"
     test $(eu-readelf -S "$lib" | grep -E "\]\ .debug_(info|abbrev)" | wc --lines) == 2
 
+    # LTO tends to break the following test, so we disable it
+%if 0
     # Test FILE symbols. These will most likely be removed by anything that
     # manipulates symbol tables because it's generally useless. So a nice test
     # that nothing has messed with symbols
@@ -1550,6 +1501,7 @@ do
       echo "$line" | grep -E "ABS ((.*/)?[-_a-zA-Z0-9]+\.(c|cc|cpp|cxx|o|oS))?$"
     done
     IFS="$old_IFS"
+%endif
 
     # If this is the JVM, look for javaCalls.(cpp|o) in FILEs, for extra sanity checking
     if [ "`basename $lib`" = "libjvm.so" ]; then
@@ -1668,7 +1620,7 @@ popd
 # Install Javadoc documentation
 install -d -m 755 $RPM_BUILD_ROOT%{_javadocdir}
 cp -a %{buildoutputdir -- $suffix}/images/docs $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}
-cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}+%{buildver}%{lts_designator_zip}-docs.zip $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
+cp -a %{buildoutputdir -- $suffix}/bundles/jdk-%{newjavaver}+%{buildver}-docs.zip $RPM_BUILD_ROOT%{_javadocdir}/%{uniquejavadocdir -- $suffix}.zip
 
 # Install icons and menu entries
 for s in 16 24 32 48 ; do
@@ -1895,245 +1847,3 @@ require "copy_jdk_configs.lua"
 %files javadoc-zip-slowdebug
 %{files_javadoc_zip -- %{debug_suffix_unquoted}}
 %endif
-
-
-%changelog
-* Wed Dec 5 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-10.rolling
-- for non debug supackages, ghosted all masters and slaves (rhbz1649776)
-- for tech-preview packages, if-outed versionless provides. Aligned versions to be %%{epoch}:%%{version}-%%{release} instead of chaotic
-- Removed all slowdebug provides (rhbz1655938); for tech-preview packages also removed all internal provides
-
-* Tue Dec 04 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.1.13-9
-- Added %%global _find_debuginfo_opts -g
-- Resolves: RHBZ#1520879 (Detailed NMT issue)
-
-* Fri Nov 30 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-8
-- added rolling suffix to release (before dist) to prevent conflict with java-11-openjdk which now have same major version
-
-* Mon Nov 12 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-6
-- fixed tck failures of arraycopy and process exec with shenandoah on
-- added patch585 rh1648995-shenandoah_array_copy_broken_by_not_always_copy_forward_for_disjoint_arrays.patch
-
-* Wed Nov 07 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-5
-- headless' suggests of cups, replaced by Requires of cups-libs
-
-* Thu Nov 01 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.1.13-3
-- added Patch584 jdk8209639-rh1640127-02-coalesce_attempted_spill_non_spillable.patch
-
-* Mon Oct 29 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.1.13-3
-- Use upstream's version of Aarch64 intrinsics disable patch:
-  - Removed:
-    RHBZ-1628612-JDK-8210461-workaround-disable-aarch64-intrinsic.patch
-    RHBZ-1630996-JDK-8210858-workaround-disable-aarch64-intrinsic-log.patch
-  - Superceded by:
-    jdk8211105-aarch64-disable_cos_sin_and_log_intrinsics.patch
-
-* Thu Oct 18 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.1.13-2
-- Use LTS designator in version output for RHEL.
-
-* Thu Oct 18 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.1.13-1
-- Update to October 2018 CPU release, 11.0.1+13.
-
-* Wed Oct 17 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.0.28-2
-- Use --with-vendor-version-string=18.9 so as to show original
-  GA date for the JDK.
-
-* Fri Sep 28 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.0.28-1
-- Identify as GA version and no longer as early access (EA).
-- JDK 11 has been released for GA on 2018-09-25.
-
-* Fri Sep 28 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.28-9
-- Rework changes from 1:11.0.ea.22-6. RHBZ#1632174 supercedes
-  RHBZ-1624122.
-- Add patch, jdk8210416-rh1632174-compile_fdlibm_with_o2_ffp_contract_off_on_gcc_clang_arches.patch, so as to
-  optimize compilation of fdlibm library.
-- Add patch, jdk8210425-rh1632174-sharedRuntimeTrig_sharedRuntimeTrans_compiled_without_optimization.patch, so
-  as to optimize compilation of sharedRuntime{Trig,Trans}.cpp
-- Add patch, jdk8210647-rh1632174-libsaproc_is_being_compiled_without_optimization.patch, so as to
-  optimize compilation of libsaproc (extra c flags won't override
-  optimization).
-- Add patch, jdk8210761-rh1632174-libjsig_is_being_compiled_without_optimization.patch, so as to
-  optimize compilation of libjsig.
-- Add patch, jdk8210703-rh1632174-vmStructs_cpp_no_longer_compiled_with_o0, so as to
-  optimize compilation of vmStructs.cpp (part of libjvm.so).
-- Reinstate filtering of opt flags coming from redhat-rpm-config.
-
-* Thu Sep 27 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.28-8
-- removed version less provides
-- javadocdir moved to arched dir as it is no longer noarch
-
-* Thu Sep 20 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.28-6
-- Add patch, RHBZ-1630996-JDK-8210858-workaround-disable-aarch64-intrinsic-log.patch,
-  so as to disable log math intrinsic on aarch64. Work-around for
-  JDK-8210858
-
-* Thu Sep 13 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.28-5
-- Add patch, RHBZ-1628612-JDK-8210461-workaround-disable-aarch64-intrinsic.patch,
-  so as to disable dsin/dcos math intrinsics on aarch64. Work-around for
-  JDK-8210461.
-
-* Wed Sep 12 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.22-6
-- Add patch, JDK-8210416-RHBZ-1624122-fdlibm-opt-fix.patch, so as to
-  optimize compilation of fdlibm library.
-- Add patch, JDK-8210425-RHBZ-1624122-sharedRuntimeTrig-opt-fix.patch, so
-  as to optimize compilation of sharedRuntime{Trig,Trans}.cpp
-- Add patch, JDK-8210647-RHBZ-1624122-libsaproc-opt-fix.patch, so as to
-  optimize compilation of libsaproc (extra c flags won't override
-  optimization).
-- Add patch, JDK-8210703-RHBZ-1624122-vmStructs-opt-fix.patch, so as to
-  optimize compilation of vmStructs.cpp (part of libjvm.so).
-- No longer filter -O flags from C flags coming from
-  redhat-rpm-config.
-
-* Mon Sep 10 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.28-4
-- link to jhsdb followed its file to ifarch jit_arches ifnarch s390x
-
-* Fri Sep 7 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.28-3
-- Enable ZGC on x86_64.
-
-* Tue Sep 4 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.28-2
-- jfr/*jfc files listed for all arches
-- lib/classlist do not exists s390, ifarch-ed via jit_arches out
-
-* Fri Aug 31 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.28-1
-- Update to latest upstream build jdk11+28, the first release
-  candidate.
-
-* Wed Aug 29 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.22-8
-- Adjust system NSS patch, pr1983-rh1565658-support_using_the_system_installation_of_nss_with_the_sunec_provider_jdk11.patch, so
-  as to filter -Wl,--as-needed from linker flags. Fixes FTBFS issue.
-
-* Thu Aug 23 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-6
-- dissabled accessibility, fixed provides for main package's debug variant
-
-* Mon Jul 30 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-5
-- now buildrequires javapackages-filesystem as the  issue with macros should be fixed
-
-* Wed Jul 18 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-2
-- changed to build by itself instead of by jdk10
-
-* Tue Jul 17 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.22-1
-- added Recommends gtk3 for main package
-- changed BuildRequires from gtk2-devel to gtk3-devel (it can be more likely dropped)
-- added Suggests lksctp-tools, pcsc-lite-devel, cups for headless package
-- see RHBZ1598152
-- added trick to catch hs_err files (sgehwolf)
-- updated to shenandaoh-jdk-11+22
-
-* Sat Jul 07 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.20-1
-- removed patch6 JDK-8205616-systemLcmsAndJpgFixFor-rev_f0aeede1b855.patch
-- improved a bit generate_source_tarball.sh to serve also for systemtap
-- thus deleted generate_tapsets.sh
-- simplified and cleared update_package.sh
-- moved to single source jdk - from shenandoah/jdk11
-- bumped to latest jdk11+20
-- adapted PR2126 to jdk11+20
-- adapted handling of systemtap sources to new style
-- (no (misleading) version inside (full version is in name), thus different sed on tapsets and different directory)
-- shortened summaries and descriptions to around 80 chars
-- Hunspell spell checked
-- license fixed to correct jdk11 (sgehwolf)
-- more correct handling of internal libraries (sgehwolf)
-- added lib/security/public_suffix_list.dat as +20 have added it (JDK-8201815)
-- added test for shenandaoh GC presence where expected
-- Removed workaround for broken aarch64 slowdebug build
-- Removed all defattrs
-- Removed no longer necessary cleanup of diz and  debuginfo files
-
-* Fri Jun 22 2018 Jiri Vanek <jvanek@redhat.com> - 1:11.0.ea.19-1
-- updated sources to jdk-11+19
-- added patch6 systemLcmsAndJpgFixFor-f0aeede1b855.patch to fix regression of system libraries after f0aeede1b855 commit
-- adapted pr1983-rh1565658-support_using_the_system_installation_of_nss_with_the_sunec_provider_jdk11.patch to accommodate changes after f0aeede1b855 commit
-
-* Thu Jun 14 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.16-5
-- Revert rename: java-11-openjdk => java-openjdk.
-
-* Wed Jun 13 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.16-4
-- Add aarch64 to aot_arches.
-
-* Wed Jun 13 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.16-3
-- Rename to package java-11-openjdk.
-
-* Wed Jun 13 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.16-2
-- Disable Aarch64 slowdebug build (see JDK-8204331).
-- s390x doesn't have the SA even though it's a JIT arch.
-
-* Wed Jun 13 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:11.0.ea.16-1
-- Initial version of JDK 11 ea based on tag jdk-11+16.
-- Removed patches no longer needed or upstream:
-  sorted-diff.patch (see JDK-8198844)
-  JDK-8201788-bootcycle-images-jobs.patch
-  JDK-8201509-s390-atomic_store.patch
-  JDK-8202262-libjsig.so-extra-link-flags.patch (never was an issue on 11)
-  JDK-8193802-npe-jar-getVersionMap.patch
-- Updated and renamed patches:
-  java-openjdk-s390-size_t.patch => JDK-8203030-s390-size_t.patch
-- Updated patches for JDK 11:
-  pr1983-rh1565658-support_using_the_system_installation_of_nss_with_the_sunec_provider_jdk11.patch
-
-* Tue Jun 12 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-9
-- Use proper private_libs expression for filtering requires/provides.
-
-* Fri Jun 08 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-8
-- Bump release and rebuild for fixed gdb. See RHBZ#1589118.
-
-* Mon Jun 04 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-7
-- quoted sed expressions, changed possibly confusing # by @
-- added vendor(origin) into icons
-- removed last trace of relative symlinks
-- added BuildRequires of javapackages-tools to fix build failure after Requires change to javapackages-filesystem
-
-* Thu May 17 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-5
-- Move to javapackages-filesystem for directory ownership.
-  Resolves RHBZ#1500288
-
-* Mon Apr 30 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-4
-- Add JDK-8193802-npe-jar-getVersionMap.patch so as to fix
-  RHBZ#1557375.
-
-* Mon Apr 23 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-3
-- Inject build flags properly. See RHBZ#1571359
-- Added patch JDK-8202262-libjsig.so-extra-link-flags.patch
-  since libjsig.so doesn't get linker flags injected properly.
-
-* Fri Apr 20 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.1.10-2
-- Removed unneeded patches:
-  PStack-808293.patch
-  multiple-pkcs11-library-init.patch
-  ppc_stack_overflow_fix.patch 
-- Added patches for s390 Zero builds:
-  JDK-8201495-s390-java-opts.patch
-  JDK-8201509-s390-atomic_store.patch
-- Renamed patches for clarity:
-  aarch64BuildFailure.patch => JDK-8200556-aarch64-slowdebug-crash.patch
-  systemCryptoPolicyPR3183.patch => pr3183-rh1340845-support_fedora_rhel_system_crypto_policy.patch
-  bootcycle_jobs.patch => JDK-8201788-bootcycle-images-jobs.patch
-  system-nss-ec-rh1565658.patch => pr1983-rh1565658-support_using_the_system_installation_of_nss_with_the_sunec_provider_jdk11.patch
-
-* Fri Apr 20 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.1.10-1
-- updated to security update 1
-- jexec unlinked from path
-- used java-openjdk as boot jdk
-- aligned provides/requires
-- renamed zip javadoc
-
-* Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-12
-- Enable basic EC ciphers test in %check.
-
-* Tue Apr 10 2018 Severin Gehwolf <sgehwolf@redhat.com> - 1:10.0.0.46-11
-- Port Martin Balao's JDK 9 patch for system NSS support to JDK 10.
-- Resolves RHBZ#1565658
-
-* Mon Apr 09 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.0.46-10
-- jexec linked to path
-
-* Fri Apr 06 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.0.46-9
-- subpackage(s) replaced by sub-package(s) and other cosmetic changes
-
-* Tue Apr 03 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.0.46-8
-- removed accessibility sub-packages
-- kept applied patch and properties files
-- debug sub-packages renamed to slowdebug
-
-* Fri Feb 23 2018 Jiri Vanek <jvanek@redhat.com> - 1:10.0.0.46-1
-- initial load

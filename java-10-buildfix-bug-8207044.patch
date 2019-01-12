@@ -1,0 +1,20 @@
+diff -up java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/shared/space.inline.hpp.omv~ java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/shared/space.inline.hpp
+--- java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/shared/space.inline.hpp.omv~	2019-01-09 12:32:30.513449235 +0100
++++ java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/shared/space.inline.hpp	2019-01-09 12:32:42.044640085 +0100
+@@ -26,6 +26,7 @@
+ #define SHARE_VM_GC_SHARED_SPACE_INLINE_HPP
+ 
+ #include "gc/serial/markSweep.inline.hpp"
++#include "gc/shared/blockOffsetTable.inline.hpp"
+ #include "gc/shared/collectedHeap.hpp"
+ #include "gc/shared/generation.hpp"
+ #include "gc/shared/space.hpp"
+diff -up java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp.omv~ java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp
+--- java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp.omv~	2019-01-09 13:16:37.437507439 +0100
++++ java-10-openjdk-10.0.2.13-8.x86_64/openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp	2019-01-09 13:19:38.508615975 +0100
+@@ -207,4 +207,5 @@ public:
+   virtual void do_oop(oop* p)       { do_oop_nv(p); }
+ };
+ 
++#include "gc/g1/g1OopClosures.inline.hpp"
+ #endif // SHARE_VM_GC_G1_G1OOPCLOSURES_HPP

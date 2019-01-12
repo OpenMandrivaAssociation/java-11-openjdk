@@ -111,6 +111,15 @@ else
     hg clone ${REPO_ROOT} openjdk -r ${VERSION}
   popd
 fi
+
+if [ "$PROJECT_NAME" != "hg" ]; then
+	echo "Removing in-tree libraries"
+	OURDIR=$(realpath $(dirname $0))
+	cd ${FILE_NAME_ROOT}
+	$OURDIR/remove-intree-libraries.sh
+	cd ..
+fi
+
 pushd "${FILE_NAME_ROOT}"
     if [ -d openjdk/src ]; then 
         pushd openjdk
@@ -119,11 +128,9 @@ pushd "${FILE_NAME_ROOT}"
             rm -vrf $CRYPTO_PATH
             echo "Syncing EC list with NSS"
             if [ "x$PR2126" = "x" ] ; then
-                # orriginally for 8:
-                # get pr2126.patch (from http://icedtea.classpath.org/hg/icedtea?cmd=changeset;node=8d2c9a898f50) from most correct tag
-                # Do not push it or publish it (see http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=2126)
-                # there is currnetly no "upstram version of this patch, hardcoding custom version
-                PR2126="../../pr2126-11.patch"
+                # From IcedTea: http://icedtea.classpath.org/hg/icedtea?cmd=changeset;node=8d2c9a898f50
+                # http://icedtea.classpath.org/bugzilla/show_bug.cgi?id=2126
+		PR2126="$(ls ../../pr2126*.patch)"
             fi;
             echo "Applying ${PR2126}"
             patch -Np1 < $PR2126

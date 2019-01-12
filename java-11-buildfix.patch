@@ -1,0 +1,9 @@
+diff -up openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp.omv~ openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp
+--- openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp.omv~	2019-01-11 14:16:53.819009500 +0100
++++ openjdk/src/hotspot/share/gc/g1/g1OopClosures.hpp	2019-01-11 14:17:10.795223881 +0100
+@@ -223,4 +223,5 @@ public:
+   virtual ReferenceIterationMode reference_iteration_mode() { return DO_DISCOVERED_AND_DISCOVERY; }
+ };
+ 
++#include "gc/g1/g1OopClosures.inline.hpp"
+ #endif // SHARE_VM_GC_G1_G1OOPCLOSURES_HPP
