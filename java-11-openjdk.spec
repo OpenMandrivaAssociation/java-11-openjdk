@@ -1364,6 +1364,12 @@ EXTRA_CPP_FLAGS="%ourcppflags -std=gnu++98 -fno-delete-null-pointer-checks -fno-
 # fix rpmlint warnings
 EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 %endif
+
+%ifarch %{ix86} %{arm}
+# https://bugs.openjdk.java.net/browse/JDK-8199936
+EXTRA_CFLAGS="$EXTRA_CFLAGS -mincoming-stack-boundary=2"
+EXTRA_CPP_FLAGS="$EXTRA_CPP_FLAGS -mincoming-stack-boundary=2"
+%endif
 export EXTRA_CFLAGS
 
 for suffix in %{build_loop} ; do
