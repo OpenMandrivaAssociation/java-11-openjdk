@@ -1,4 +1,5 @@
 %global _disable_ld_no_undefined 1
+%global _jvmdir /usr/lib/jvm
 
 # We don't usually need slowdebug builds
 %bcond_with slowdebug
