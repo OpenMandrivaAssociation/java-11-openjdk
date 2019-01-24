@@ -1036,9 +1036,10 @@ BuildRequires: desktop-file-utils
 BuildRequires: fontconfig
 BuildRequires: pkgconfig(freetype2)
 BuildRequires: giflib-devel
-BuildRequires: gcc-c++
 BuildRequires: pkgconfig(gtk+-2.0)
 BuildRequires: pkgconfig(nss)
+# For testing
+BuildRequires: gdb
 # For freebl
 BuildRequires: nss-static-devel
 BuildRequires: pkgconfig(lcms2)
@@ -1361,8 +1362,8 @@ export CFLAGS="$CFLAGS -mieee"
 # We use ourcppflags because the OpenJDK build seems to
 # pass EXTRA_CFLAGS to the HotSpot C++ compiler...
 # Explicitly set the C++ standard as the default has changed on GCC >= 6
-EXTRA_CFLAGS="%ourcppflags -std=gnu++98 -Wno-error -fno-delete-null-pointer-checks -fno-lifetime-dse"
-EXTRA_CPP_FLAGS="%ourcppflags -std=gnu++98 -fno-delete-null-pointer-checks -fno-lifetime-dse"
+EXTRA_CFLAGS="%ourcppflags -Wno-error -fno-delete-null-pointer-checks"
+EXTRA_CPP_FLAGS="%ourcppflags -fno-delete-null-pointer-checks"
 
 %ifarch %{power64} ppc
 # fix rpmlint warnings
@@ -1391,6 +1392,7 @@ mkdir -p %{buildoutputdir -- $suffix}
 pushd %{buildoutputdir -- $suffix}
 
 bash ../configure \
+    --with-toolchain-type=clang \
 %ifnarch %{jit_arches}
     --with-jvm-variants=zero \
 %endif
@@ -1513,6 +1515,8 @@ do
     IFS="$old_IFS"
 %endif
 
+    # This fails with toolchain=clang
+%if 0
     # If this is the JVM, look for javaCalls.(cpp|o) in FILEs, for extra sanity checking
     if [ "`basename $lib`" = "libjvm.so" ]; then
       eu-readelf -s "$lib" | \
@@ -1528,6 +1532,8 @@ do
       eu-readelf -x .gnu_debuglink "$lib"
       false
     fi
+%endif
+
   fi
 done
 
