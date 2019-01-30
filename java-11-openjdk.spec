@@ -990,6 +990,7 @@ Patch13:    java-11-buildfix.patch
 #############################################
 
 Patch585: rh1648995-shenandoah_array_copy_broken_by_not_always_copy_forward_for_disjoint_arrays.patch
+Patch586: openjdk-11-fix-aarch64.patch
 
 #############################################
 #
@@ -1295,6 +1296,7 @@ pushd %{top_level_dir_name}
 %patch584 -p1
 %patch585 -p1
 popd # openjdk
+%patch586 -p1
 
 %patch1000
 
