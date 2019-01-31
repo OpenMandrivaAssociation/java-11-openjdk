@@ -991,6 +991,8 @@ Patch13:    java-11-buildfix.patch
 
 Patch585: rh1648995-shenandoah_array_copy_broken_by_not_always_copy_forward_for_disjoint_arrays.patch
 Patch586: openjdk-11-fix-aarch64.patch
+# Workaround for https://bugs.llvm.org/show_bug.cgi?id=40543
+Patch587: openjdk-11-clang-bug-40543.patch
 
 #############################################
 #
@@ -1297,6 +1299,7 @@ pushd %{top_level_dir_name}
 %patch585 -p1
 popd # openjdk
 %patch586 -p1
+%patch587 -p1
 
 %patch1000
 
