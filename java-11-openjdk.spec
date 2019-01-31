@@ -1556,7 +1556,14 @@ quit
 end
 run -version
 EOF
-grep 'JavaCallWrapper::JavaCallWrapper' gdb.out
+if ! grep 'JavaCallWrapper::JavaCallWrapper' gdb.out; then
+	# Let's spew a warning, but not fail the build... Issues debugging
+	# a VM are bad, but not something a user will typically do - and
+	# therefore not exactly showstoppers.
+	echo "WARNING: Debug info seems to be messed up."
+	echo "Expected to see a failure in JavaCallWrapper::JavaCallWrapper, got:"
+	cat gdb.out
+fi
 
 # Check src.zip has all sources. See RHBZ#1130490
 jar -tf $JAVA_HOME/lib/src.zip | grep 'sun.misc.Unsafe'
