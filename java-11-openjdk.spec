@@ -1397,7 +1397,9 @@ mkdir -p %{buildoutputdir -- $suffix}
 pushd %{buildoutputdir -- $suffix}
 
 bash ../configure \
+%ifnarch %{aarch64}
     --with-toolchain-type=clang \
+%endif
 %ifnarch %{jit_arches}
     --with-jvm-variants=zero \
 %endif
