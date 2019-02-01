@@ -918,7 +918,7 @@ Version: %{newjavaver}.%{buildver}
 # This package needs `.rolling` as part of Release so as to not conflict on install with
 # java-X-openjdk. I.e. when latest rolling release is also an LTS release packaged as
 # java-X-openjdk. See: https://bugzilla.redhat.com/show_bug.cgi?id=1647298
-Release: 1
+Release: 2
 
 Summary: %{origin_nice} Runtime Environment %{majorver}
 Group:   Development/Languages
@@ -1465,10 +1465,6 @@ export JAVA_HOME=$(pwd)/%{buildoutputdir -- $suffix}/images/%{jdkimage}
 
 # Install nss.cfg right away as we will be using the JRE above
 install -m 644 nss.cfg $JAVA_HOME/conf/security/
-
-# Use system-wide tzdata
-rm $JAVA_HOME/lib/tzdb.dat
-ln -s %{_datadir}/javazi-1.8/tzdb.dat $JAVA_HOME/lib/tzdb.dat
 
 # build cycles
 done
