@@ -1375,7 +1375,7 @@ EXTRA_CPP_FLAGS="%ourcppflags -fno-delete-null-pointer-checks"
 EXTRA_CFLAGS="$EXTRA_CFLAGS -fno-strict-aliasing"
 %endif
 
-%ifarch %{ix86} %{arm}
+%ifarch %{ix86}
 # https://bugs.openjdk.java.net/browse/JDK-8199936
 EXTRA_CFLAGS="$EXTRA_CFLAGS -mincoming-stack-boundary=2"
 EXTRA_CPP_FLAGS="$EXTRA_CPP_FLAGS -mincoming-stack-boundary=2"
