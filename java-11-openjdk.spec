@@ -1396,7 +1396,7 @@ top_dir_abs_path=$(pwd)/%{top_level_dir_name}
 mkdir -p %{buildoutputdir -- $suffix}
 pushd %{buildoutputdir -- $suffix}
 
-bash ../configure \
+if ! bash ../configure \
 %ifnarch %{aarch64} %{ix86} %{arm}
     --with-toolchain-type=clang \
 %endif
@@ -1429,7 +1429,11 @@ bash ../configure \
 %ifarch %{x86_64}
     --with-jvm-features=zgc \
 %endif
-    --disable-warnings-as-errors
+    --disable-warnings-as-errors; then
+	echo "configure failed... config.log:"
+	cat config.log
+	exit 1
+fi
 
 # With LTO enabled, /tmp runs out of space.
 # Temporary LTO files for openjdk 11 easily take 50 GB.
