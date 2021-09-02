@@ -82,8 +82,20 @@
 # On x86_64 and AArch64, we use the Shenandoah HotSpot
 %ifarch %{x86_64} %{aarch64}
 %global use_shenandoah_hotspot 1
+%global shenandoah_feature shenandoahgc
 %else
 %global use_shenandoah_hotspot 0
+%global shenandoah_feature -shenandoahgc
+%endif
+
+# On certain architectures, we compile the ZGC
+	
+%ifarch %{x86_64}
+%global use_zgc_hotspot 1
+%global zgc_feature zgc
+%else
+%global use_zgc_hotspot 0
+%global zgc_feature -zgc
 %endif
 
 %if %{include_debug_build}
@@ -195,7 +207,7 @@
 
 # New Version-String scheme-style defines
 %global majorver 11
-%global securityver 1
+%global securityver 12
 # buildjdkver is usually same as %%{majorver},
 # but in time of bootstrap of next jdk, it is majorver-1, 
 # and this it is better to change it here, on single place
@@ -204,12 +216,14 @@
 # GA'ed in September 2018 => 18.9
 %global vendor_version_string 18.9
 
+%global buildjdkver %majorver
+
 # Standard JPackage naming and versioning defines
 %global origin          openjdk
 %global origin_nice     OpenJDK
 %global top_level_dir_name   %{origin}
 %global minorver        0
-%global buildver        13
+%global buildver        7
 # priority must be 8 digits in total; untill openjdk 1.8 we were using 18..... so when moving to 11 we had to add another digit
 %if %is_system_jdk
 %global priority %( printf '%02d%02d%02d%02d' %{majorver} %{minorver} %{securityver} %{buildver} )
@@ -948,7 +962,7 @@ URL:      http://openjdk.java.net/
 
 # to regenerate source0 (jdk) and source8 (jdk's taspets) run update_package.sh
 # update_package.sh contains hard-coded repos, revisions, tags, and projects to regenerate the source archives
-Source0: shenandoah-jdk%{majorver}-shenandoah-jdk-%{newjavaver}+%{buildver}.tar.xz
+Source0: jdk-updates-jdk%{majorver}u-jdk-%{newjavaver}+%{buildver}-4curve.tar.xz
 Source8: systemtap_3.2_tapsets_hg-icedtea8-9d464368e06d.tar.xz
 
 # Desktop files. Adapted from IcedTea
@@ -1005,8 +1019,6 @@ Patch587: openjdk-11-clang-bug-40543.patch
 #
 #############################################
 
-# 8210416, RHBZ#1632174: [linux] Poor StrictMath performance due to non-optimized compilation
-Patch8:    jdk8210416-rh1632174-compile_fdlibm_with_o2_ffp_contract_off_on_gcc_clang_arches.patch
 # 8210425, RHBZ#1632174: [x86] sharedRuntimeTrig/sharedRuntimeTrans compiled without optimization
 Patch9:    jdk8210425-rh1632174-sharedRuntimeTrig_sharedRuntimeTrans_compiled_without_optimization.patch
 
@@ -1022,10 +1034,6 @@ Patch10:    jdk8210647-rh1632174-libsaproc_is_being_compiled_without_optimizatio
 Patch11:    jdk8210761-rh1632174-libjsig_is_being_compiled_without_optimization.patch
 # 8210703, RHBZ#1632174: vmStructs.cpp compiled with -O0
 Patch12:    jdk8210703-rh1632174-vmStructs_cpp_no_longer_compiled_with_o0
-# 8211105, RHBZ-1628612, RHBZ-1630996: Temporarily disable dsin/dcos/log
-# intrinsics on aarch64, falling back to C code. Re-enable once JDK-8210461
-# is fixed and available in jdk11u.
-Patch6:    jdk8211105-aarch64-disable_cos_sin_and_log_intrinsics.patch
 
 #############################################
 #
@@ -1064,7 +1072,7 @@ BuildRequires: pkgconfig
 BuildRequires: pkgconfig(xproto)
 BuildRequires: zip
 # OpenJDK X officially requires OpenJDK (X-1) to build
-BuildRequires: java-10-openjdk-devel
+BuildRequires: java-%{buildjdkver}-openjdk-devel
 # Zero-assembler build requirement.
 %ifnarch %{jit_arches}
 BuildRequires: pkgconfig(libffi)
@@ -1072,11 +1080,6 @@ BuildRequires: pkgconfig(libffi)
 
 # cacerts build requirement.
 BuildRequires: openssl
-# execstack build requirement.
-# no prelink on ARM yet
-%ifnarch %{arm} %{aarch64} ppc64le
-BuildRequires: prelink
-%endif
 %if %{with_systemtap}
 BuildRequires: systemtap
 %endif
@@ -1293,18 +1296,8 @@ pushd %{top_level_dir_name}
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
-%patch6 -p1
-%patch8 -p1
-%patch9 -p1
-%patch10 -p1
-%patch11 -p1
-%patch12 -p1
 %patch13 -p1
-%patch584 -p1
-%patch585 -p1
 popd # openjdk
-%patch586 -p1
-%patch587 -p1
 
 %patch1000
 
@@ -1411,7 +1404,7 @@ if ! bash ../configure \
 %ifarch %{ppc64le}
     --with-jobs=1 \
 %endif
-    --with-boot-jdk=$(ls -d /usr/lib/jvm/java-10-openjdk-* |head -n1) \
+    --with-boot-jdk=$(ls -d /usr/lib/jvm/java-%{buildjdkver}-openjdk-* |head -n1) \
     --with-version-build=%{buildver} \
     --with-version-pre="" \
     --with-version-opt="" \
@@ -1419,7 +1412,6 @@ if ! bash ../configure \
     --with-debug-level=$debugbuild \
     --with-native-debug-symbols=internal \
     --enable-unlimited-crypto \
-    --enable-system-nss \
     --with-zlib=system \
     --with-libjpeg=system \
     --with-giflib=system \
@@ -1431,9 +1423,7 @@ if ! bash ../configure \
     --with-extra-ldflags="%{ourldflags}" \
     --with-num-cores="$NUM_PROC" \
     --disable-javac-server \
-%ifarch %{x86_64}
-    --with-jvm-features=zgc \
-%endif
+    --with-jvm-features="%{shenandoah_feature},%{zgc_feature}" \
     --disable-warnings-as-errors; then
 	echo "configure failed... config.log:"
 	cat config.log
