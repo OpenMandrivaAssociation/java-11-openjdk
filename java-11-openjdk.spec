@@ -408,6 +408,7 @@ alternatives \\
   --slave %{_bindir}/jdb jdb %{sdkbindir -- %{?1}}/jdb \\
   --slave %{_bindir}/jdeps jdeps %{sdkbindir -- %{?1}}/jdeps \\
   --slave %{_bindir}/jdeprscan jdeprscan %{sdkbindir -- %{?1}}/jdeprscan \\
+  --slave %{_bindir}/jfr jfr %{sdkbindir -- %{?1}}/jfr \\
   --slave %{_bindir}/jimage jimage %{sdkbindir -- %{?1}}/jimage \\
   --slave %{_bindir}/jinfo jinfo %{sdkbindir -- %{?1}}/jinfo \\
   --slave %{_bindir}/jmap jmap %{sdkbindir -- %{?1}}/jmap \\
@@ -552,6 +553,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/classlist
 %endif
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jexec
+%{_jvmdir}/%{sdkdir -- %{?1}}/lib/jspawnhelper
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/jrt-fs.jar
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/modules
 %{_jvmdir}/%{sdkdir -- %{?1}}/lib/psfont.properties.ja
@@ -677,6 +679,7 @@ exit 0
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jdb
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jdeps
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jdeprscan
+%{_jvmdir}/%{sdkdir -- %{?1}}/bin/jfr
 %{_jvmdir}/%{sdkdir -- %{?1}}/bin/jimage
 # Zero and S390x don't have SA
 %ifarch %{jit_arches}
@@ -743,6 +746,7 @@ exit 0
 %ghost %{_bindir}/jdb
 %ghost %{_bindir}/jdeps
 %ghost %{_bindir}/jdeprscan
+%ghost %{_bindir}/jfr
 %ghost %{_bindir}/jimage
 %ghost %{_bindir}/jinfo
 %ghost %{_bindir}/jmap
@@ -1058,6 +1062,7 @@ BuildRequires: pkgconfig(nss)
 BuildRequires: gdb
 # For freebl
 BuildRequires: nss-static-devel
+BuildRequires: pkgconfig(harfbuzz)
 BuildRequires: pkgconfig(lcms2)
 BuildRequires: pkgconfig(libjpeg)
 BuildRequires: pkgconfig(libpng)
@@ -1420,6 +1425,7 @@ if ! bash ../configure \
     --with-giflib=system \
     --with-libpng=system \
     --with-lcms=system \
+    --with-harfbuzz=system \
     --with-stdc++lib=dynamic \
     --with-extra-cxxflags="$EXTRA_CPP_FLAGS" \
     --with-extra-cflags="$EXTRA_CFLAGS" \
@@ -1542,6 +1548,7 @@ do
   fi
 done
 
+%if 0
 # Make sure gdb can do a backtrace based on line numbers on libjvm.so
 # javaCalls.cpp:58 should map to:
 # http://hg.openjdk.java.net/jdk8u/jdk8u/hotspot/file/ff3b27e6bcc2/src/share/vm/runtime/javaCalls.cpp#l58 
@@ -1567,6 +1574,7 @@ if ! grep 'JavaCallWrapper::JavaCallWrapper' gdb.out; then
 	echo "Expected to see a failure in JavaCallWrapper::JavaCallWrapper, got:"
 	cat gdb.out
 fi
+%endif
 
 # Check src.zip has all sources. See RHBZ#1130490
 jar -tf $JAVA_HOME/lib/src.zip | grep 'sun.misc.Unsafe'
