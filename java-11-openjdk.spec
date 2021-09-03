@@ -1063,9 +1063,12 @@ BuildRequires: pkgconfig(libjpeg)
 BuildRequires: pkgconfig(libpng)
 BuildRequires: xsltproc
 BuildRequires: pkgconfig(x11)
+BuildRequires: pkgconfig(xext)
 BuildRequires: pkgconfig(xi)
 BuildRequires: pkgconfig(xcomposite)
 BuildRequires: pkgconfig(xinerama)
+BuildRequires: pkgconfig(xrandr)
+BuildRequires: pkgconfig(xrender)
 BuildRequires: pkgconfig(xt)
 BuildRequires: pkgconfig(xtst)
 BuildRequires: pkgconfig
