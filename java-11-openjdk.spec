@@ -1410,7 +1410,7 @@ mkdir -p %{buildoutputdir -- $suffix}
 pushd %{buildoutputdir -- $suffix}
 
 if ! bash ../configure \
-%ifnarch %{aarch64} %{ix86} %{arm}
+%ifnarch %{aarch64} %{ix86} %{arm} %{x86_64}
     --with-toolchain-type=clang \
 %endif
 %ifnarch %{jit_arches}
