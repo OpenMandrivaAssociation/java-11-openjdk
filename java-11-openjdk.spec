@@ -1006,6 +1006,11 @@ Patch5:    pr1983-rh1565658-support_using_the_system_installation_of_nss_with_th
 # Make it build
 Patch13:    java-11-buildfix.patch
 
+Patch14:      openjdk-16-glibc-2.34.patch
+Patch15:      openjdk-16-llvm13.patch
+
+
+
 #############################################
 #
 # Shenandaoh specific patches
@@ -1305,6 +1310,8 @@ pushd %{top_level_dir_name}
 %patch4 -p1
 %patch5 -p1
 %patch13 -p1
+%patch14 -p1
+%patch15 -p1
 popd # openjdk
 
 %patch1000
