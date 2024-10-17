@@ -961,7 +961,7 @@ Group:   Development/Languages
 # The PCSClite headers are under a BSD with advertising license
 # The elliptic curve cryptography (ECC) source code is licensed under the LGPLv2.1 or any later version
 License:  ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2 and GPLv2 with exceptions and IJG and LGPLv2+ and MIT and MPLv2.0 and Public Domain and W3C and zlib and ISC and FTL and RSA
-URL:      http://openjdk.java.net/
+URL:      https://openjdk.java.net/
 
 
 # to regenerate source0 (jdk) and source8 (jdk's taspets) run update_package.sh
